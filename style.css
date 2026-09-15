@@ -268,19 +268,107 @@ footer .d-block {
     color: #ffffff !important;
 }
 
-/* === RESPONSIVE === */
+/* ═══════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Nothing should be able to push the page wider than the screen.
+   Images and embeds are the usual culprits, so cap them globally. */
+img, svg, video, iframe, canvas {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Long unbroken strings — URLs, code samples, email addresses — would
+   otherwise force a horizontal scrollbar on narrow screens. */
+h1, h2, h3, h4, h5, h6, p, li, td, a {
+    overflow-wrap: break-word;
+}
+
+/* ── Tablet ── */
+@media (max-width: 991px) {
+    .hero-section h1 { font-size: 2.6rem; }
+    .profile-img { width: 200px; height: 200px; }
+}
+
+/* ── Phone ── */
 @media (max-width: 768px) {
     #gameArea {
         height: 300px;
     }
-    
+
     .hero-section {
         min-height: 50vh;
+        padding: 40px 0;
     }
-    
+
     .hero-section h1 {
         font-size: 2rem;
     }
+
+    /* Bootstrap's .lead is 1.25rem, which is heavy on a phone */
+    .hero-section .lead,
+    .lead {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    /* Stacked, full-width buttons are easier to hit than two side by side.
+       The inline me-2 margin has to be overridden to keep them aligned. */
+    .hero-section .btn,
+    .btn-lg {
+        font-size: 1rem;
+        padding: 0.6rem 1.1rem;
+    }
+    .hero-section .btn {
+        display: block;
+        width: 100%;
+        max-width: 280px;
+        margin: 0 auto 10px !important;
+    }
+
+    /* Three stats across is too tight below ~400px — let them wrap */
+    .game-stats {
+        flex-wrap: wrap;
+        gap: 8px 18px;
+        justify-content: center;
+        font-size: 0.95rem;
+        padding: 12px;
+    }
+
+    .profile-img {
+        width: 170px;
+        height: 170px;
+        border-width: 4px;
+    }
+
+    .cert-badge {
+        width: 110px;
+    }
+
+    /* The floating code background is decorative and it does not wrap
+       (white-space: pre). On a small screen it is visual noise. */
+    #codeBackground::before,
+    #codeBackground::after {
+        display: none;
+    }
+
+    section.py-5 {
+        padding-top: 2.2rem !important;
+        padding-bottom: 2.2rem !important;
+    }
+}
+
+/* ── Small phone ── */
+@media (max-width: 420px) {
+    .hero-section h1 { font-size: 1.6rem; }
+    .hero-section .lead, .lead { font-size: 0.92rem; }
+    #gameArea { height: 240px; }
+    .game-stats { font-size: 0.88rem; }
+    .profile-img { width: 140px; height: 140px; }
+    .cert-badge { width: 90px; }
+    h2 { font-size: 1.5rem; }
+    h3 { font-size: 1.25rem; }
 }
 /* === PROFILE IMAGE === */
 .profile-img {
