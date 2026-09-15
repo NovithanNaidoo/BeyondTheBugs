@@ -378,11 +378,35 @@ h1, h2, h3, h4, h5, h6, p, li, td, a {
     object-fit: cover;
     border: 5px solid #28a745;
     box-shadow: 0 5px 20px rgba(40, 167, 69, 0.3);
-    transition: transform 0.3s;
+
+    /* Sits in greyscale until you hover, then comes to life. The slight
+       brightness drop stops the mono version looking washed out. */
+    filter: grayscale(100%) brightness(0.92);
+    transition: filter 0.45s ease,
+                transform 0.35s ease,
+                box-shadow 0.35s ease,
+                border-color 0.35s ease;
 }
 
 .profile-img:hover {
-    transform: scale(1.05);
+    filter: grayscale(0%) brightness(1.03);
+    transform: scale(1.06);
+    border-color: #39ff14;
+    box-shadow: 0 8px 34px rgba(57, 255, 20, 0.45),
+                0 0 0 6px rgba(40, 167, 69, 0.12);
+}
+
+/* No hover on a touch screen, so the photo would be stuck in greyscale.
+   Show it in full colour there instead. */
+@media (hover: none) {
+    .profile-img { filter: none; }
+}
+
+/* Honour the system setting for people who find motion uncomfortable —
+   the colour change stays, the movement goes. */
+@media (prefers-reduced-motion: reduce) {
+    .profile-img { transition: filter 0.3s ease; }
+    .profile-img:hover { transform: none; }
 }
 
 /* Make About Me heading white */
