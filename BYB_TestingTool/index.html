@@ -424,6 +424,10 @@
       <i class="fas fa-th-large" style="color:var(--green);font-size:14px"></i> Dashboard
     </div>
     <div class="topbar-right">
+      <div class="trello-badge" id="cloudBadge" title="Cloud sync status">
+        <div class="trello-dot" style="background:var(--yellow)"></div>
+        Connecting...
+      </div>
       <div class="trello-badge" id="trelloBadge">
         <div class="trello-dot" style="background:var(--yellow)"></div>
         Connecting...
@@ -786,6 +790,9 @@
 <!-- TOAST -->
 <div class="toast-wrap" id="tw"></div>
 
+<!-- Supabase client — cloud persistence so data follows you across browsers
+     and machines instead of living only in this browser. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ── MATRIX RAIN ──
 (function(){
@@ -893,7 +900,121 @@ let store = JSON.parse(localStorage.getItem('btstore2')||'null')||{
 };
 let editCase=null, editDefect=null, aiResult='', dragId=null;
 
-function saveStore(){localStorage.setItem('btstore2',JSON.stringify(store));}
+// ── CLOUD SYNC (Supabase) ─────────────────────────────────────────────
+//
+// The tool originally kept everything in localStorage, which is tied to one
+// browser on one machine — open the site anywhere else and it was empty.
+// This layer mirrors the same data to a hosted Postgres database so it
+// follows you everywhere.
+//
+// Design: the whole store is kept as a single JSON document rather than
+// normalised into tables. The dataset is small and is always read and written
+// as a whole, so a document row matches how the data is actually used and
+// avoids rewriting every render function. If the tool later needs to query
+// across cases (for example "all high-priority cases in any project"), that is
+// the point to normalise.
+//
+// localStorage is kept as a mirror, so the tool still works offline and a
+// database outage cannot lose work.
+
+const CLOUD = {
+  url:   'https://nnwfhtdujqagraafopjb.supabase.co',
+  key:   'sb_publishable_YhNaNXK1iID1_eQnV1Bo3Q_XuiuWyZz',
+  table: 'app_state',
+  rowId: 'btstore2'
+};
+
+let db = null;            // Supabase client, null when not configured
+let cloudReady = false;   // true once the initial load has succeeded
+let saveTimer = null;     // debounce handle
+
+function cloudConfigured(){
+  return CLOUD.url.startsWith('http') && CLOUD.key.length > 20
+      && typeof window.supabase !== 'undefined';
+}
+
+function initCloud(){
+  if(!cloudConfigured()) return false;
+  try{
+    db = window.supabase.createClient(CLOUD.url, CLOUD.key);
+    return true;
+  }catch(e){
+    console.warn('Cloud sync unavailable:', e);
+    return false;
+  }
+}
+
+// Pulls the stored document. On a first run the remote row is empty, so the
+// local seed data is pushed up instead.
+async function loadFromCloud(){
+  if(!db) return false;
+  try{
+    const { data, error } = await db
+      .from(CLOUD.table).select('data').eq('id', CLOUD.rowId).maybeSingle();
+    if(error) throw error;
+
+    if(data && data.data && Array.isArray(data.data.cases)){
+      store = data.data;
+      localStorage.setItem('btstore2', JSON.stringify(store));
+      cloudReady = true;
+      return true;
+    }
+
+    cloudReady = true;
+    await pushToCloud();
+    return false;
+  }catch(e){
+    console.warn('Could not load from cloud:', e);
+    cloudReady = false;
+    return false;
+  }
+}
+
+async function pushToCloud(){
+  if(!db || !cloudReady) return;
+  try{
+    const { error } = await db.from(CLOUD.table).upsert({
+      id: CLOUD.rowId,
+      data: store,
+      updated_at: new Date().toISOString()
+    });
+    if(error) throw error;
+    saveTimer = null;
+    setCloudBadge('saved');
+  }catch(e){
+    console.warn('Could not save to cloud:', e);
+    setCloudBadge('error');
+  }
+}
+
+// saveStore stays synchronous, so none of the existing call sites change.
+// localStorage is written immediately; the cloud write is debounced so a burst
+// of edits becomes one request rather than twenty.
+function saveStore(){
+  localStorage.setItem('btstore2', JSON.stringify(store));
+  if(!db || !cloudReady) return;
+  setCloudBadge('saving');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(pushToCloud, 800);
+}
+
+function setCloudBadge(state){
+  const el = document.getElementById('cloudBadge');
+  if(!el) return;
+  const map = {
+    saving: ['var(--yellow)',     'Saving…'],
+    saved:  ['var(--green)',      'Cloud Synced'],
+    error:  ['var(--red)',        'Offline — saved locally'],
+    local:  ['var(--text-light)', 'Local only']
+  };
+  const [colour, label] = map[state] || map.local;
+  el.innerHTML = `<div class="trello-dot" style="background:${colour}"></div>${label}`;
+}
+
+// Warn before closing if a debounced save is still pending.
+window.addEventListener('beforeunload', e => {
+  if(saveTimer){ e.preventDefault(); e.returnValue = ''; }
+});
 
 // ── NAVIGATION ──
 const PAGE_META={
@@ -1326,9 +1447,24 @@ document.addEventListener('keydown',e=>{
 });
 
 // ── INIT ──
-fillProjSel('cProj','rProj','dProj');
-renderDash();
-initTrello();
+//
+// Cloud data is loaded before the first render, so the tool shows what is in
+// the database rather than briefly showing stale local data and then swapping.
+// If the database is unreachable the local copy is used and the tool still
+// works — the header just says "Offline".
+(async function bootstrap(){
+  if(initCloud()){
+    setCloudBadge('saving');
+    await loadFromCloud();
+    setCloudBadge(cloudReady ? 'saved' : 'error');
+  }else{
+    setCloudBadge('local');
+  }
+
+  fillProjSel('cProj','rProj','dProj');
+  renderDash();
+  initTrello();
+})();
 </script>
 </body>
 </html>
