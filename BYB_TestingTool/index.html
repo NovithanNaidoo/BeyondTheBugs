@@ -1,1621 +1,218 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BeyondTheBugs — Testing Tool</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="icon" type="image/png" href="Logo/bug.png">
-<style>
-  :root {
-    --green: #16a34a;
-    --green-dark: #14532d;
-    --green-light: #22c55e;
-    --green-bright: #4ade80;
-    --green-bg: #f0fdf4;
-    --green-border: #bbf7d0;
-    --green-muted: #dcfce7;
-    --sidebar-bg: #0d1f0d;
-    --sidebar-hover: #162416;
-    --sidebar-active: #16a34a;
-    --text: #111827;
-    --text-mid: #6b7280;
-    --text-light: #9ca3af;
-    --bg: #f8fafb;
-    --white: #ffffff;
-    --border: #e5e7eb;
-    --red: #ef4444;
-    --orange: #f97316;
-    --blue: #3b82f6;
-    --yellow: #eab308;
-    --purple: #8b5cf6;
-    --shadow: 0 1px 3px rgba(0,0,0,0.08);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
-    --radius: 12px;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; font-size: 14px; overflow: hidden; }
-
-  /* ── MATRIX CANVAS ── */
-  #matrix {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 0; pointer-events: none; opacity: 0.07;
-  }
-
-  /* ── SIDEBAR ── */
-  .sidebar {
-    width: 250px; background: var(--sidebar-bg);
-    display: flex; flex-direction: column;
-    position: fixed; top: 0; left: 0; bottom: 0;
-    z-index: 50; border-right: 1px solid rgba(255,255,255,0.05);
-  }
-
-  .sidebar-logo {
-    padding: 20px 18px 16px;
-    display: flex; align-items: center; gap: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .logo-icon {
-    width: 32px; height: 32px;
-    background: linear-gradient(135deg, #16a34a, #22c55e);
-    border-radius: 8px; display: flex; align-items: center;
-    justify-content: center; font-size: 15px;
-  }
-  .logo-text { color: var(--green-light); font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
-
-  .sidebar-nav { padding: 10px 10px; flex: 1; overflow-y: auto; }
-  .nav-section { margin-bottom: 4px; }
-
-  .nav-item {
-    display: flex; align-items: center; gap: 11px;
-    padding: 9px 12px; border-radius: 8px; cursor: pointer;
-    color: #86a886; font-size: 13px; font-weight: 500;
-    transition: all 0.15s; margin-bottom: 1px; user-select: none;
-  }
-  .nav-item i { width: 16px; text-align: center; font-size: 14px; flex-shrink: 0; }
-  .nav-item:hover { background: var(--sidebar-hover); color: #c6e6c6; }
-  .nav-item.active { background: var(--green); color: white; }
-  .nav-item.active i { color: white; }
-
-  .nav-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 8px 10px; }
-
-  .sidebar-bottom { padding: 10px 10px 16px; }
-
-  /* Bug back button */
-  .bug-back {
-    display: flex; align-items: center; gap: 9px;
-    padding: 9px 12px; border-radius: 50px;
-    background: var(--green-light); color: #000;
-    font-weight: 700; font-size: 12px; cursor: pointer;
-    text-decoration: none; transition: all 0.2s;
-    box-shadow: 0 0 14px rgba(34,197,94,0.35);
-    margin-top: 4px;
-  }
-  .bug-back:hover { background: var(--green-bright); transform: translateY(-1px); box-shadow: 0 0 22px rgba(34,197,94,0.5); }
-  .bug-back-icon { font-size: 18px; line-height: 1; }
-
-  /* ── MAIN ── */
-  .main { margin-left: 250px; flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; position: relative; z-index: 1; }
-
-  /* TOPBAR */
-  .topbar {
-    background: rgba(255,255,255,0.92); backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 24px; height: 56px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .page-title { font-size: 15px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
-  .topbar-right { display: flex; align-items: center; gap: 10px; }
-
-  /* Hamburger — hidden on desktop, shown at narrow widths */
-  .menu-btn {
-    display: none; background: none; border: 1px solid var(--border);
-    border-radius: 8px; width: 34px; height: 34px; cursor: pointer;
-    color: var(--text); font-size: 15px; flex-shrink: 0; margin-right: 10px;
-    align-items: center; justify-content: center;
-  }
-  .menu-btn:active { background: var(--bg); }
-
-  /* Dim layer behind the drawer */
-  .nav-overlay {
-    display: none; position: fixed; inset: 0; z-index: 45;
-    background: rgba(0,0,0,0.5);
-  }
-  .nav-overlay.show { display: block; }
-
-  .search-wrap {
-    display: flex; align-items: center; gap: 8px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 8px; padding: 7px 12px; min-width: 200px;
-  }
-  .search-wrap input {
-    background: none; border: none; outline: none;
-    font-family: 'Inter', sans-serif; font-size: 12px; color: var(--text); width: 100%;
-  }
-  .search-wrap input::placeholder { color: var(--text-light); }
-
-  .btn {
-    padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
-    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
-    transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px;
-  }
-  .btn-green { background: var(--green); color: white; }
-  .btn-green:hover { background: #15803d; }
-  .btn-outline { background: white; color: var(--text); border: 1px solid var(--border); font-weight: 500; }
-  .btn-outline:hover { background: var(--bg); }
-  .btn-ghost { background: transparent; color: var(--text-mid); font-weight: 500; }
-  .btn-ghost:hover { background: var(--bg); }
-  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-  /* CONTENT AREA */
-  .content { padding: 24px; overflow-y: auto; flex: 1; }
-
-  /* PAGE VISIBILITY */
-  .page { display: none; }
-  .page.active { display: block; }
-
-  /* ── HERO BANNER ── */
-  .hero {
-    background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 50%, #d1fae5 100%);
-    border: 1px solid var(--green-border); border-radius: var(--radius);
-    padding: 32px 36px; margin-bottom: 24px; position: relative; overflow: hidden;
-  }
-  .hero::after {
-    content: '🧪'; position: absolute; right: 48px; top: 50%;
-    transform: translateY(-50%); font-size: 90px; opacity: 0.12; pointer-events: none;
-  }
-  .hero h1 { font-size: 26px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-  .hero p { color: var(--text-mid); font-size: 13px; max-width: 500px; line-height: 1.6; margin-bottom: 20px; }
-  .hero-btns { display: flex; gap: 10px; align-items: center; }
-
-  /* ── STATS ── */
-  .stats { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; margin-bottom: 24px; }
-  .stat-card {
-    background: var(--white); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 18px 16px;
-    display: flex; align-items: center; justify-content: space-between;
-    box-shadow: var(--shadow);
-  }
-  .stat-label { font-size: 11px; color: var(--text-mid); margin-bottom: 5px; font-weight: 500; }
-  .stat-val { font-size: 26px; font-weight: 700; color: var(--text); }
-  .stat-ico {
-    width: 40px; height: 40px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center; font-size: 17px;
-    flex-shrink: 0;
-  }
-
-  /* ── SECTION ── */
-  .section {
-    background: var(--white); border: 1px solid var(--border);
-    border-radius: var(--radius); margin-bottom: 20px; box-shadow: var(--shadow);
-    overflow: hidden;
-  }
-  .section-hd {
-    padding: 16px 20px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .section-title { font-size: 14px; font-weight: 600; }
-  .section-sub { font-size: 12px; color: var(--text-light); margin-top: 2px; }
-
-  /* ── TEST CASE CARDS GRID ── */
-  .cases-toolbar {
-    padding: 14px 20px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  }
-  .cases-search {
-    display: flex; align-items: center; gap: 7px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 8px; padding: 7px 12px; flex: 1; max-width: 320px;
-  }
-  .cases-search input { background: none; border: none; outline: none; font-family: 'Inter', sans-serif; font-size: 12px; width: 100%; color: var(--text); }
-  .cases-search input::placeholder { color: var(--text-light); }
-  .select-filter {
-    background: var(--white); border: 1px solid var(--border);
-    border-radius: 8px; padding: 7px 10px; font-family: 'Inter', sans-serif;
-    font-size: 12px; color: var(--text); cursor: pointer; outline: none;
-  }
-
-  .cards-grid {
-    display: grid; grid-template-columns: repeat(3,1fr);
-    gap: 16px; padding: 20px;
-  }
-  .case-card {
-    background: var(--white); border: 1px solid var(--border);
-    border-radius: 10px; padding: 18px; cursor: pointer;
-    transition: all 0.15s; position: relative;
-  }
-  .case-card:hover { border-color: var(--green-border); box-shadow: 0 4px 14px rgba(22,163,74,0.1); transform: translateY(-1px); }
-  .case-card-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; line-height: 1.4; }
-  .case-card-desc { font-size: 12px; color: var(--text-mid); margin-bottom: 12px; line-height: 1.5; }
-  .case-card-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
-  .case-card-footer { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-light); }
-  .case-card-actions {
-    position: absolute; top: 10px; right: 10px;
-    display: none; gap: 4px;
-  }
-  .case-card:hover .case-card-actions { display: flex; }
-  .card-act-btn {
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 5px; cursor: pointer; padding: 4px 7px;
-    font-size: 11px; color: var(--text-mid); transition: all 0.1s;
-  }
-  .card-act-btn:hover { background: var(--border); }
-  .card-act-btn.del:hover { background: #fee2e2; color: var(--red); border-color: #fecaca; }
-
-  /* ── BADGES ── */
-  .badge {
-    display: inline-flex; align-items: center;
-    padding: 3px 9px; border-radius: 20px;
-    font-size: 10px; font-weight: 600; white-space: nowrap;
-  }
-  .b-approved { background: #dcfce7; color: #15803d; }
-  .b-draft    { background: #f3f4f6; color: #374151; }
-  .b-failed   { background: #fee2e2; color: #dc2626; }
-  .b-running  { background: #dbeafe; color: #1d4ed8; }
-  .b-pending  { background: #fef9c3; color: #a16207; }
-  .b-critical { background: #fee2e2; color: #dc2626; }
-  .b-high     { background: #ffedd5; color: #c2410c; }
-  .b-medium   { background: #fef9c3; color: #a16207; }
-  .b-low      { background: #dcfce7; color: #15803d; }
-  .b-open     { background: #fee2e2; color: #dc2626; }
-  .b-closed   { background: #dcfce7; color: #15803d; }
-  .b-inprog   { background: #dbeafe; color: #1d4ed8; }
-  .b-func     { background: #f3f4f6; color: #374151; }
-  .b-ready    { background: #dbeafe; color: #1d4ed8; }
-  .b-review   { background: #fef9c3; color: #a16207; }
-
-  /* ── TABLE ── */
-  table { width: 100%; border-collapse: collapse; }
-  thead th {
-    padding: 10px 18px; text-align: left; font-size: 10px; font-weight: 700;
-    color: var(--text-light); text-transform: uppercase; letter-spacing: 0.07em;
-    background: var(--bg); border-bottom: 1px solid var(--border);
-  }
-  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
-  tbody tr:last-child { border-bottom: none; }
-  tbody tr:hover { background: #fafafa; }
-  tbody td { padding: 13px 18px; font-size: 13px; vertical-align: middle; }
-
-  /* ── KANBAN BOARD ── */
-  .kanban-wrap { padding: 20px; overflow-x: auto; }
-  .kanban { display: flex; gap: 16px; min-width: max-content; align-items: flex-start; }
-  .k-col {
-    width: 260px; background: var(--bg);
-    border-radius: 10px; border: 1px solid var(--border); flex-shrink: 0;
-  }
-  .k-col-hd {
-    padding: 12px 14px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .k-col-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
-  .kdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .k-col-count { font-size: 11px; font-weight: 700; color: var(--text-light); background: var(--border); padding: 1px 7px; border-radius: 20px; }
-  .k-col-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 100px; }
-  .k-card {
-    background: var(--white); border: 1px solid var(--border);
-    border-radius: 8px; padding: 12px; cursor: grab; transition: all 0.15s;
-  }
-  .k-card:hover { border-color: var(--green-border); box-shadow: 0 2px 8px rgba(22,163,74,0.1); }
-  .k-card.dragging { opacity: 0.4; cursor: grabbing; }
-  .k-card-title { font-size: 12px; font-weight: 500; margin-bottom: 8px; line-height: 1.4; color: var(--text); }
-  .k-card-foot { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-  .k-drop { min-height: 40px; border: 2px dashed transparent; border-radius: 8px; transition: all 0.15s; }
-  .k-drop.over { border-color: var(--green); background: rgba(22,163,74,0.04); }
-
-  /* ── EMPTY STATE ── */
-  .empty {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 60px 20px; text-align: center;
-  }
-  .empty i { font-size: 40px; color: var(--green-border); margin-bottom: 14px; }
-  .empty h3 { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
-  .empty p { font-size: 13px; color: var(--text-mid); }
-
-  /* ── MODAL ── */
-  .overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-    z-index: 200; display: flex; align-items: center; justify-content: center;
-    padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s;
-    backdrop-filter: blur(4px);
-  }
-  .overlay.open { opacity: 1; pointer-events: all; }
-  .modal {
-    background: var(--white); border-radius: 14px; width: 100%;
-    padding: 26px; transform: translateY(8px); transition: transform 0.2s;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-    max-height: calc(100vh - 40px);
-    overflow-y: auto;
-    box-sizing: border-box;
-  }
-  .overlay.open .modal { transform: translateY(0); }
-  .modal-sm { max-width: 480px; }
-  .modal-lg { max-width: 660px; }
-  .modal-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-  .modal-hd h2 { font-size: 15px; font-weight: 700; }
-  .modal-x { background: none; border: none; color: var(--text-mid); font-size: 18px; cursor: pointer; padding: 3px 7px; border-radius: 6px; }
-  .modal-x:hover { background: var(--bg); }
-  .fg { margin-bottom: 14px; }
-  .fl { display: block; font-size: 10px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
-  .fi, .ft, .fs {
-    width: 100%; background: var(--bg); border: 1px solid var(--border);
-    border-radius: 8px; padding: 9px 11px; color: var(--text);
-    font-family: 'Inter', sans-serif; font-size: 13px; outline: none; transition: border-color 0.15s;
-  }
-  .fi:focus, .ft:focus, .fs:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(22,163,74,0.08); }
-  .ft { resize: vertical; min-height: 80px; }
-  .fr { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .mf { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
-
-  /* ── AI BOX ── */
-  .ai-box { background: var(--green-bg); border: 1px solid var(--green-border); border-radius: 10px; padding: 14px; margin-top: 14px; }
-  .ai-box-hd { font-size: 11px; font-weight: 700; color: var(--green); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-  .ai-out {
-    background: white; border: 1px solid var(--green-border); border-radius: 8px;
-    padding: 14px; font-size: 12px; color: var(--text-mid); line-height: 1.8;
-    min-height: 100px; white-space: pre-wrap; max-height: 280px; overflow-y: auto;
-  }
-  .ai-think { color: var(--green); }
-  .ai-acts { display: flex; gap: 8px; margin-top: 10px; }
-
-  /* TOAST */
-  .toast-wrap { position: fixed; bottom: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 7px; }
-  .toast {
-    background: #1f2937; color: white; border-radius: 10px;
-    padding: 11px 16px; font-size: 13px; display: flex; align-items: center; gap: 9px;
-    min-width: 200px; box-shadow: var(--shadow-md); animation: tin 0.2s ease;
-  }
-  @keyframes tin { from{transform:translateX(14px);opacity:0} to{transform:translateX(0);opacity:1} }
-  .td { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-
-  /* TRELLO badge */
-  .trello-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-mid); padding: 5px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; }
-  .trello-dot { width: 7px; height: 7px; border-radius: 50%; }
-
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
-  /* ══════════════════════════════════════════════════════════════════
-     RESPONSIVE
-     The layout was built desktop-only: a fixed 250px sidebar with the
-     main area pushed across by the same amount. On a phone that leaves
-     roughly 125px of usable width, so the sidebar becomes a slide-in
-     drawer and every multi-column grid collapses.
-     ══════════════════════════════════════════════════════════════════ */
-
-  /* ── Tablet and small laptop ── */
-  @media (max-width: 1100px) {
-    .stats { grid-template-columns: repeat(3, 1fr); }
-    .cards-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  @media (max-width: 860px) {
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    .cards-grid { grid-template-columns: 1fr; }
-    .search-wrap { min-width: 0; width: 150px; }
-  }
-
-  /* ── Phone ── */
-  @media (max-width: 720px) {
-
-    /* Sidebar becomes an off-canvas drawer */
-    .sidebar {
-      transform: translateX(-100%);
-      transition: transform 0.25s ease;
-      width: 250px; box-shadow: 4px 0 24px rgba(0,0,0,0.4);
-    }
-    .sidebar.open { transform: translateX(0); }
-
-    .main { margin-left: 0; height: 100dvh; }
-
-    .menu-btn { display: inline-flex; }
-
-    /* Topbar: two rows — title with hamburger, then the badges */
-    .topbar {
-      height: auto; padding: 8px 14px;
-      flex-wrap: wrap; gap: 8px; row-gap: 6px;
-    }
-    .page-title { font-size: 14px; flex: 1; min-width: 0; }
-    .page-title span, .page-title div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .topbar-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 6px; }
-
-    /* The header search duplicates the one on the Test Cases page */
-    .search-wrap { display: none; }
-
-    .content { padding: 14px; }
-
-    /* Single column everywhere */
-    .stats { grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
-    .stat-card { padding: 14px; }
-    .stat-val { font-size: 22px; }
-
-    .hero { padding: 20px 18px; }
-    .hero h1 { font-size: 20px; }
-    .hero p { font-size: 12.5px; }
-    .hero::after { display: none; }              /* decorative emoji crowds the text */
-    .hero-btns { flex-wrap: wrap; }
-
-    .section-hd { padding: 13px 15px; flex-wrap: wrap; gap: 8px; }
-    .cards-grid { padding: 14px; gap: 12px; }
-
-    /* Toolbar controls stack and fill the width — easier to tap */
-    .cases-toolbar { padding: 12px 14px; gap: 8px; }
-    .cases-search { max-width: none; width: 100%; }
-    .select-filter { flex: 1; min-width: 130px; }
-
-    /* Modals: near full screen, and form rows stop being two-up */
-    .modal { padding: 20px 18px; border-radius: 12px; max-height: calc(100dvh - 24px); }
-    .modal-sm, .modal-lg { max-width: 100%; }
-    .fr { grid-template-columns: 1fr; gap: 0; }
-    .mf { flex-direction: column-reverse; gap: 8px; }
-    .mf .btn { width: 100%; justify-content: center; }
-
-    .toast-wrap { left: 14px; right: 14px; bottom: 14px; }
-    .toast { min-width: 0; }
-
-    /* Kanban already scrolls sideways — just narrow the columns a little */
-    .kanban-wrap { padding: 14px; }
-    .k-col { width: 220px; }
-
-    /* iOS zooms the page in when a font smaller than 16px gains focus */
-    .fi, .ft, .fs, .cases-search input, .search-wrap input { font-size: 16px; }
-  }
-
-  /* ── Small phone ── */
-  @media (max-width: 400px) {
-    .content { padding: 11px; }
-    .hero h1 { font-size: 18px; }
-    .btn { padding: 8px 12px; font-size: 12px; }
-    .trello-badge { font-size: 10px; padding: 4px 8px; }
-  }
-
-  /* Anyone on a touch screen gets larger tap targets */
-  @media (hover: none) and (pointer: coarse) {
-    .nav-item { padding: 12px 12px; font-size: 14px; }
-    .case-card-actions { position: static; display: flex; gap: 8px; margin-top: 10px; opacity: 1; }
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeyondTheBugs - Projects</title>
+    <link rel="icon" type="image/png" href="Logo/bug.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="Logo/bug.png">
+    <style>
+        .project-card {
+            transition: transform 0.2s;
+            margin-bottom: 15px;
+        }
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .project-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .placeholder-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
+    <div id="codeBackground"></div>
 
-<!-- MATRIX RAIN -->
-<canvas id="matrix"></canvas>
-
-<!-- SIDEBAR -->
-<!-- Dims the page behind the drawer on mobile; tapping it closes the menu -->
-<div class="nav-overlay" id="navOverlay" onclick="closeNav()"></div>
-
-<aside class="sidebar" id="sidebar">
-  <nav class="sidebar-nav">
-    <div class="nav-section">
-      <div class="nav-item active" id="nav-dashboard" onclick="goTo('dashboard',this)">
-        <i class="fas fa-th-large"></i> Dashboard
-      </div>
-      <div class="nav-item" id="nav-projects" onclick="goTo('projects',this)">
-        <i class="fas fa-folder"></i> Projects
-      </div>
-      <div class="nav-item" id="nav-testcases" onclick="goTo('testcases',this)">
-        <i class="fas fa-flask"></i> Test Cases
-      </div>
-      <div class="nav-item" id="nav-testruns" onclick="goTo('testruns',this)">
-        <i class="fas fa-play"></i> Test Runs
-      </div>
-      <div class="nav-item" id="nav-defects" onclick="goTo('defects',this)">
-        <i class="fas fa-bug"></i> Defects
-      </div>
-      <div class="nav-item" id="nav-boards" onclick="goTo('boards',this)">
-        <i class="fas fa-columns"></i> Boards
-      </div>
-    </div>
-
-    <div class="nav-divider"></div>
-
-    <div class="nav-section">
-      <div class="nav-item" onclick="goTo('guide',this)">
-        <i class="fas fa-question-circle"></i> Guide
-      </div>
-      <div class="nav-item" onclick="openAI()">
-        <i class="fas fa-magic"></i> Generate
-      </div>
-      <div class="nav-item" onclick="openTrash()">
-        <i class="fas fa-trash"></i> Trash
-      </div>
-      <div class="nav-item" id="nav-trello" onclick="goTo('trello',this)">
-        <i class="fas fa-sign-out-alt"></i> Trello Sync
-      </div>
-    </div>
-  </nav>
-
-  <div class="sidebar-bottom">
-    <a href="https://beyondthebugs.netlify.app" target="_blank" class="bug-back">
-      Back to Beyond the Bugs
-    </a>
-  </div>
-</aside>
-
-<!-- MAIN -->
-<main class="main">
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <button class="menu-btn" id="menuBtn" onclick="toggleNav()"
-            aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
-      <i class="fas fa-bars"></i>
-    </button>
-    <div class="page-title" id="pageTitle">
-      <i class="fas fa-th-large" style="color:var(--green);font-size:14px"></i> Dashboard
-    </div>
-    <div class="topbar-right">
-      <div class="trello-badge" id="cloudBadge" title="Cloud sync status">
-        <div class="trello-dot" style="background:var(--yellow)"></div>
-        Connecting...
-      </div>
-      <div class="trello-badge" id="trelloBadge">
-        <div class="trello-dot" style="background:var(--yellow)"></div>
-        Connecting...
-      </div>
-      <div class="search-wrap">
-        <i class="fas fa-search" style="color:var(--text-light);font-size:11px"></i>
-        <input type="text" placeholder="Search test cases..." id="globalSearch" oninput="filterCases()">
-      </div>
-      <button class="btn btn-green" onclick="openAI()">
-        <i class="fas fa-magic"></i> Generate with AI
-      </button>
-    </div>
-  </div>
-
-  <!-- PAGES -->
-  <div class="content">
-
-    <!-- DASHBOARD -->
-    <div class="page active" id="page-dashboard">
-      <div class="hero">
-        <h1>BeyondTheBugs</h1>
-        <p>Write &amp; generate test cases for manual testing. Describe what you want in plain English and let AI craft structured test cases instantly.</p>
-        <div class="hero-btns">
-          <button class="btn btn-green" onclick="openAI()"><i class="fas fa-magic"></i> Generate with AI</button>
-          <button class="btn btn-outline" onclick="goTo('testcases',document.getElementById('nav-testcases'))">View All Test Cases →</button>
-        </div>
-      </div>
-      <div class="stats" id="statsGrid"></div>
-      <div class="section">
-        <div class="section-hd"><span class="section-title">Recent Test Cases</span><button class="btn btn-ghost" onclick="goTo('testcases',document.getElementById('nav-testcases'))">View all →</button></div>
-        <div id="recentCasesWrap"></div>
-      </div>
-      <div class="section">
-        <div class="section-hd"><span class="section-title">Recent Defects</span><button class="btn btn-ghost" onclick="goTo('defects',document.getElementById('nav-defects'))">View all →</button></div>
-        <table><thead><tr><th>Title</th><th>Severity</th><th>Status</th><th>Project</th></tr></thead>
-        <tbody id="recentDefects"></tbody></table>
-      </div>
-    </div>
-
-    <!-- PROJECTS -->
-    <div class="page" id="page-projects">
-      <div class="section">
-        <div class="section-hd">
-          <div><div class="section-title">Projects</div><div class="section-sub">Manage your testing projects</div></div>
-          <button class="btn btn-green" onclick="openModal('projectModal')"><i class="fas fa-plus"></i> New Project</button>
-        </div>
-        <table><thead><tr><th>Name</th><th>Description</th><th>Test Cases</th><th>Defects</th><th></th></tr></thead>
-        <tbody id="projectsBody"></tbody></table>
-      </div>
-    </div>
-
-    <!-- TEST CASES -->
-    <div class="page" id="page-testcases">
-      <div class="section">
-        <div class="section-hd">
-          <div>
-            <div class="section-title">Test Cases</div>
-            <div class="section-sub" id="caseCount">0 test cases</div>
-          </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-outline" onclick="openAI()"><i class="fas fa-magic"></i> Generate with AI</button>
-            <button class="btn btn-green" onclick="openCaseModal()"><i class="fas fa-plus"></i> New Test Case</button>
-          </div>
-        </div>
-        <div class="cases-toolbar">
-          <div class="cases-search">
-            <i class="fas fa-search" style="color:var(--text-light);font-size:11px"></i>
-            <input type="text" placeholder="Search test cases..." id="caseSearch" oninput="filterCases()">
-          </div>
-          <select class="select-filter" id="filterStatus" onchange="filterCases()">
-            <option value="">All Status</option>
-            <option value="approved">Approved</option>
-            <option value="draft">Draft</option>
-            <option value="failed">Failed</option>
-          </select>
-          <select class="select-filter" id="filterPriority" onchange="filterCases()">
-            <option value="">All Priority</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-          <select class="select-filter" id="filterCategory" onchange="filterCases()">
-            <option value="">All Categories</option>
-            <option value="functional">Functional</option>
-            <option value="ui">UI</option>
-            <option value="regression">Regression</option>
-            <option value="integration">Integration</option>
-            <option value="end-to-end (e2e)">End-to-End</option>
-            <option value="security">Security</option>
-          </select>
-        </div>
-        <div class="cards-grid" id="casesGrid"></div>
-      </div>
-    </div>
-
-    <!-- TEST RUNS -->
-    <div class="page" id="page-testruns">
-      <div class="section">
-        <div class="section-hd">
-          <div><div class="section-title">Test Runs</div><div class="section-sub">Execute and track test runs</div></div>
-          <button class="btn btn-green" onclick="openModal('runModal')"><i class="fas fa-plus"></i> New Test Run</button>
-        </div>
-        <div class="empty" id="runsEmpty" style="display:none">
-          <i class="fas fa-play"></i><h3>Test Runs</h3><p>Coming soon — execute and track test runs here.</p>
-        </div>
-        <table id="runsTable"><thead><tr><th>Name</th><th>Project</th><th>Status</th><th>Cases</th><th>Passed</th><th>Failed</th><th></th></tr></thead>
-        <tbody id="runsBody"></tbody></table>
-      </div>
-    </div>
-
-    <!-- DEFECTS -->
-    <div class="page" id="page-defects">
-      <div class="section">
-        <div class="section-hd">
-          <div><div class="section-title">Defects</div><div class="section-sub">Track and manage defects</div></div>
-          <button class="btn btn-green" onclick="openDefectModal()"><i class="fas fa-plus"></i> New Defect</button>
-        </div>
-        <div class="empty" id="defectsEmpty" style="display:none">
-          <i class="fas fa-bug"></i><h3>Defects</h3><p>No defects logged yet.</p>
-        </div>
-        <table id="defectsTable"><thead><tr><th>ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Project</th><th></th></tr></thead>
-        <tbody id="defectsBody"></tbody></table>
-      </div>
-    </div>
-
-    <!-- BOARDS -->
-    <div class="page" id="page-boards">
-      <div class="section">
-        <div class="section-hd">
-          <div>
-            <div class="section-title"><i class="fas fa-columns" style="color:var(--green)"></i> Boards</div>
-            <div class="section-sub">Drag &amp; drop test cases between status columns</div>
-          </div>
-          <button class="btn btn-green" onclick="openCaseModal()"><i class="fas fa-plus"></i> New Test Case</button>
-        </div>
-        <div class="kanban-wrap">
-          <div class="kanban" id="kanban"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- GUIDE -->
-    <div class="page" id="page-guide">
-      <div class="section">
-        <div class="section-hd"><div class="section-title"><i class="fas fa-question-circle" style="color:var(--green)"></i> Guide</div></div>
-        <div style="padding:28px;max-width:600px">
-          <h3 style="margin-bottom:12px;font-size:15px">Getting Started</h3>
-          <p style="color:var(--text-mid);font-size:13px;line-height:1.8;margin-bottom:20px">BeyondTheBugs is your manual testing hub. Here is how to use it:</p>
-          <div style="display:flex;flex-direction:column;gap:14px">
-            
-            <div style="display:flex;gap:12px;align-items:flex-start">
-              <div style="width:24px;height:24px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0">1</div>
-              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Create a <strong>Project</strong> to organise your testing work</p>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="index.html"><i class="fas fa-bug"></i> BeyondTheBugs</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="cv.html">CV</a></li>
+                    <li class="nav-item"><a class="nav-link" href="bio.html">Bio</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="projects.html">Projects</a></li>
+                </ul>
             </div>
-
-            <div style="display:flex;gap:12px;align-items:flex-start">
-              <div style="width:24px;height:24px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0">2</div>
-              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Add <strong>Test Cases</strong> manually or use AI to generate them instantly</p>
-            </div>
-
-            <div style="display:flex;gap:12px;align-items:flex-start">
-              <div style="width:24px;height:24px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0">3</div>
-              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Log <strong>Defects</strong> when you find bugs during testing</p>
-            </div>
-
-            <div style="display:flex;gap:12px;align-items:flex-start">
-              <div style="width:24px;height:24px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0">4</div>
-              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Use the <strong>Boards</strong> to track test cases through Draft → Ready → In Review → Approved</p>
-            </div>
-
-            <div style="display:flex;gap:12px;align-items:flex-start">
-              <div style="width:24px;height:24px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0">5</div>
-              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Use <strong>Generate with AI</strong> to describe what to test in plain English</p>
-            </div>
-
-          </div>
         </div>
-      </div>
-    </div>
+    </nav>
 
-    <!-- TRELLO -->
-    <div class="page" id="page-trello">
-      <div class="section">
-        <div class="section-hd"><div class="section-title"><i class="fas fa-sync" style="color:var(--green)"></i> Trello Sync</div></div>
-        <div style="padding:24px" id="trelloContent"></div>
-      </div>
-    </div>
+    <div class="container mt-5 pt-5">
+    <h1 class="text-center mb-5">My Projects</h1>
 
-  </div>
-</main>
+    <div class="row">
 
-<!-- ── MODALS ── -->
+        <!-- Music Player -->
+        <div class="col-md-4 mb-3">
+            <div class="card project-card">
+                <img src="Projects/images/MusicPlayer.png" class="project-image" alt="Music Player">
+                <div class="card-body">
+                    <h5 class="card-title">Music Player</h5>
+                    <p class="card-text">
+                        A browser-based music player that allows users to play, pause, and switch between tracks through a simple and intuitive interface.
+                    </p>
+                    <p class="text-muted small"><i class="fas fa-tools"></i> HTML | CSS | JS</p>
+                    <div class="d-flex gap-2">
+                        <a href="Projects/MusicPlayer/MusicPlayer/index.html" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Demo
+                        </a>
+                        <a href="https://github.com/5DarkHorse5/MusicPlayer.git" target="_blank" class="btn btn-sm btn-dark">
+                            <i class="fab fa-github"></i> GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-<!-- AI MODAL -->
-<div class="overlay" id="aiModal" onclick="closeOut('aiModal',event)">
-  <div class="modal modal-lg">
-    <div class="modal-hd">
-      <h2><i class="fas fa-magic" style="color:var(--green)"></i> Generate with AI</h2>
-      <button class="modal-x" onclick="closeModal('aiModal')">✕</button>
+        <!-- Social Space -->
+        <div class="col-md-4 mb-3">
+            <div class="card project-card">
+                <img src="Projects/images/SocialSpace.png" class="project-image" alt="Social Space">
+                <div class="card-body">
+                    <h5 class="card-title">Social Space</h5>
+                    <p class="card-text">
+                        A full-stack social media application built with PHP, MySQL, and JavaScript, featuring user authentication, post creation, and interactive feeds.
+                    </p>
+                    <p class="text-muted small"><i class="fas fa-tools"></i> HTML | CSS | JS | PHP | MySQL</p>
+                    <div class="d-flex gap-2">
+                        <a href="Projects/Social_Space/index.php" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Demo
+                        </a>
+                        <a href="https://github.com/5DarkHorse5/Social_Space.git" target="_blank" class="btn btn-sm btn-dark">
+                            <i class="fab fa-github"></i> GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rock Paper Scissors -->
+        <div class="col-md-4 mb-3">
+            <div class="card project-card">
+                <img src="Projects/images/Rock,Paper,Scissor.png" class="project-image" alt="Rock Paper Scissors">
+                <div class="card-body">
+                    <h5 class="card-title">Rock, Paper, Scissors Game</h5>
+                    <p class="card-text">
+                        A lightweight Rock, Paper, Scissors game built with JavaScript, featuring responsive design and simple logic.
+                    </p>
+                    <p class="text-muted small"><i class="fas fa-tools"></i> HTML | CSS | JS</p>
+                    <div class="d-flex gap-2">
+                        <a href="Projects/rock-paper-scissors-game-main/main.html" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Demo
+                        </a>
+                        <a href="https://github.com/5DarkHorse5/rock-paper-scissors-game.git" target="_blank" class="btn btn-sm btn-dark">
+                            <i class="fab fa-github"></i> GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Currency Calculator -->
+        <div class="col-md-4 mb-3">
+            <div class="card project-card">
+                <img src="Projects/images/CurrencyCalculator.png" class="project-image" alt="Currency Calculator">
+                <div class="card-body">
+                    <h5 class="card-title">Currency Calculator</h5>
+                    <p class="card-text">
+                        A currency calculator that converts values between different currencies using real-time exchange rates.
+                    </p>
+                    <p class="text-muted small"><i class="fas fa-tools"></i> HTML | CSS | JS</p>
+                    <div class="d-flex gap-2">
+                        <a href="Projects/Currency-Calculator/index.html" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Demo
+                        </a>
+                        <a href="https://github.com/5DarkHorse5/Currency-Calculator.git" target="_blank" class="btn btn-sm btn-dark">
+                            <i class="fab fa-github"></i> GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- My CV -->
+        <div class="col-md-4 mb-3">
+            <div class="card project-card">
+                <img src="Projects/images/CV.png" class="project-image" alt="My CV">
+                <div class="card-body">
+                    <h5 class="card-title">My CV</h5>
+                    <p class="card-text">
+                        I created my CV using HTML and CSS, making it unique, easy to update, and highly customizable.
+                    </p>
+                    <p class="text-muted small"><i class="fas fa-tools"></i> HTML | CSS</p>
+                    <div class="d-flex gap-2">
+                        <a href="./Projects/CV/index.html" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Demo
+                        </a>
+                        <a href="https://github.com/5DarkHorse5/My_CV.git" target="_blank" class="btn btn-sm btn-dark">
+                            <i class="fab fa-github"></i> GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Finance Tracker -->
+        <div class="col-md-4 mb-3">
+            <div class="card project-card">
+                <img src="Projects/images/FinanceTracker.png" class="project-image" alt="Finance Tracker">
+                <div class="card-body">
+                    <h5 class="card-title">Finance Tracker</h5>
+                    <p class="card-text">
+                        A simple and intuitive application that helps users track income, expenses, and balances in one place.
+                    </p>
+                    <p class="text-muted small"><i class="fas fa-tools"></i> HTML | CSS</p>
+                    <div class="d-flex gap-2">
+
+                        <a href="Projects/FinanceTracker/index.html" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Demo
+                        </a>
+                        <a href="https://github.com/5DarkHorse5/FinanceTracker.git" target="_blank" class="btn btn-sm btn-dark">
+                            <i class="fab fa-github"></i> GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
-    <div class="fg"><label class="fl">Describe what you want to test</label>
-      <textarea class="ft" id="aiPrompt" style="min-height:90px" placeholder="e.g. Test the login page — check valid credentials, wrong password, empty fields, and lockout after 3 failed attempts"></textarea>
-    </div>
-    <div class="fr">
-      <div class="fg"><label class="fl">Test Type</label>
-        <select class="fs" id="aiType">
-          <option value="functional">Functional</option>
-          <option value="ui">UI</option>
-          <option value="end-to-end">End-to-End</option>
-          <option value="regression">Regression</option>
-          <option value="integration">Integration</option>
-          <option value="security">Security</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">Priority</label>
-        <select class="fs" id="aiPri">
-          <option value="high">High</option>
-          <option value="medium" selected>Medium</option>
-          <option value="low">Low</option>
-        </select>
-      </div>
-    </div>
-    <button class="btn btn-green" style="width:100%;padding:11px;justify-content:center" onclick="runAI()">
-      <i class="fas fa-magic"></i> Generate Test Cases
-    </button>
-    <div class="ai-box" id="aiBox" style="display:none">
-      <div class="ai-box-hd"><i class="fas fa-magic"></i> AI Generated Output</div>
-      <div class="ai-out" id="aiOut"></div>
-      <div class="ai-acts" id="aiActs" style="display:none">
-        <button class="btn btn-green" onclick="saveAI()"><i class="fas fa-save"></i> Save to Test Cases</button>
-        <button class="btn btn-outline" onclick="copyAI()"><i class="fas fa-copy"></i> Copy</button>
-        <button class="btn btn-ghost" onclick="clearAI()">Clear</button>
-      </div>
-    </div>
-  </div>
 </div>
 
-<!-- PROJECT MODAL -->
-<div class="overlay" id="projectModal" onclick="closeOut('projectModal',event)">
-  <div class="modal modal-sm">
-    <div class="modal-hd"><h2>New Project</h2><button class="modal-x" onclick="closeModal('projectModal')">✕</button></div>
-    <div class="fg"><label class="fl">Project Name *</label><input class="fi" id="pName" placeholder="e.g. E-Commerce App"></div>
-    <div class="fg"><label class="fl">Description</label><textarea class="ft" id="pDesc" placeholder="What is this project about?"></textarea></div>
-    <div class="mf">
-      <button class="btn btn-outline" onclick="closeModal('projectModal')">Cancel</button>
-      <button class="btn btn-green" onclick="saveProject()">Create Project</button>
-    </div>
-  </div>
-</div>
-
-<!-- TEST CASE MODAL -->
-<div class="overlay" id="caseModal" onclick="closeOut('caseModal',event)">
-  <div class="modal modal-lg">
-    <div class="modal-hd"><h2 id="caseMT">New Test Case</h2><button class="modal-x" onclick="closeModal('caseModal')">✕</button></div>
-
-    <div class="fg"><label class="fl">ID *</label><input class="fi" id="cId" placeholder="e.g. TC-06"></div>
-    <div class="fg"><label class="fl">Title *</label><input class="fi" id="cTitle" placeholder="Test case title"></div>
-
-    <div class="fr">
-      <div class="fg"><label class="fl">Layer</label>
-        <select class="fs" id="cLayer">
-          <option value="functional">Functional</option>
-          <option value="ui">UI</option>
-          <option value="regression">Regression</option>
-          <option value="integration">Integration</option>
-          <option value="end-to-end (e2e)">End-to-End</option>
-          <option value="security">Security</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">Priority</label>
-        <select class="fs" id="cPriority">
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium" selected>Medium</option>
-          <option value="low">Low</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="fr">
-      <div class="fg"><label class="fl">Status</label>
-        <select class="fs" id="cStatus">
-          <option value="draft">Draft</option>
-          <option value="ready">Ready</option>
-          <option value="approved">Approved</option>
-          <option value="failed">Failed</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">Date</label>
-        <input class="fi" type="date" id="cDate">
-      </div>
-    </div>
-
-    <div class="fg"><label class="fl">Description</label><input class="fi" id="cDescription" placeholder="Brief description of what this test verifies"></div>
-    <div class="fg"><label class="fl">Preconditions</label><input class="fi" id="cPreconditions" placeholder="What must be true before running this test"></div>
-    <div class="fg"><label class="fl">Steps</label><textarea class="ft" id="cSteps" placeholder="1. Navigate to login&#10;2. Enter valid credentials&#10;3. Click Login"></textarea></div>
-    <div class="fg"><label class="fl">Expected Result</label><textarea class="ft" id="cExpectedResult" style="min-height:55px" placeholder="What should happen?"></textarea></div>
-    <div class="fg"><label class="fl">Tags</label><input class="fi" id="cTags" placeholder="low; ready; ui"></div>
-
-    <div class="mf">
-      <button class="btn btn-outline" onclick="closeModal('caseModal')">Cancel</button>
-      <button class="btn btn-green" onclick="saveCase()">Save Test Case</button>
-    </div>
-  </div>
-</div>
-
-<!-- RUN MODAL -->
-<div class="overlay" id="runModal" onclick="closeOut('runModal',event)">
-  <div class="modal modal-sm">
-    <div class="modal-hd"><h2>New Test Run</h2><button class="modal-x" onclick="closeModal('runModal')">✕</button></div>
-    <div class="fg"><label class="fl">Run Name *</label><input class="fi" id="rName" placeholder="e.g. Sprint 3 Regression"></div>
-    <div class="fg"><label class="fl">Project</label><select class="fs" id="rProj"></select></div>
-    <div class="fg"><label class="fl">Status</label>
-      <select class="fs" id="rStat">
-        <option value="pending">Pending</option>
-        <option value="running">Running</option>
-        <option value="passed">Passed</option>
-        <option value="failed">Failed</option>
-      </select>
-    </div>
-    <div class="mf">
-      <button class="btn btn-outline" onclick="closeModal('runModal')">Cancel</button>
-      <button class="btn btn-green" onclick="saveRun()">Create Run</button>
-    </div>
-  </div>
-</div>
-
-<!-- DEFECT MODAL -->
-<div class="overlay" id="defectModal" onclick="closeOut('defectModal',event)">
-  <div class="modal modal-sm">
-    <div class="modal-hd"><h2 id="defMT">New Defect</h2><button class="modal-x" onclick="closeModal('defectModal')">✕</button></div>
-    <div class="fg"><label class="fl">Title *</label><input class="fi" id="dTitle" placeholder="Describe the defect"></div>
-    <div class="fr">
-      <div class="fg"><label class="fl">Severity</label>
-        <select class="fs" id="dSev">
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium" selected>Medium</option>
-          <option value="low">Low</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">Status</label>
-        <select class="fs" id="dStat">
-          <option value="open">Open</option>
-          <option value="inprog">In Progress</option>
-          <option value="closed">Closed</option>
-        </select>
-      </div>
-    </div>
-    <div class="fg"><label class="fl">Project</label><select class="fs" id="dProj"></select></div>
-    <div class="fg"><label class="fl">Description</label><textarea class="ft" id="dDesc" placeholder="Steps to reproduce..."></textarea></div>
-    <div class="mf">
-      <button class="btn btn-outline" onclick="closeModal('defectModal')">Cancel</button>
-      <button class="btn btn-green" onclick="saveDefect()">Save Defect</button>
-    </div>
-  </div>
-</div>
-
-<!-- TOAST -->
-<div class="toast-wrap" id="tw"></div>
-
-<!-- Supabase client — cloud persistence so data follows you across browsers
-     and machines instead of living only in this browser. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-// ── MATRIX RAIN ──
-(function(){
-  const canvas = document.getElementById('matrix');
-  const ctx = canvas.getContext('2d');
-  let W, H, cols, drops;
-  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz<>{}[]()#@!?/\\|=+-*&^%$';
-  function resize(){
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-    cols = Math.floor(W/16);
-    drops = Array(cols).fill(1);
-  }
-  function draw(){
-    ctx.fillStyle='rgba(240,253,244,0.045)';
-    ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#16a34a';
-    ctx.font='13px monospace';
-    drops.forEach((y,i)=>{
-      const c=chars[Math.floor(Math.random()*chars.length)];
-      ctx.fillText(c,i*16,y*16);
-      if(y*16>H&&Math.random()>0.975) drops[i]=0;
-      drops[i]++;
-    });
-  }
-  resize();
-  window.addEventListener('resize',resize);
-  setInterval(draw,45);
-})();
-
-// ── TRELLO CONFIG ──
-const API_KEY = 'd8efd66d71a7c2c2f4f120cc3077bad0';
-const TOKEN   = 'ATTAaae30e8f996e272823ee4b411dfd8fbf08ea139ba16b8c0f34ec6c2ca7f40410890E719E';
-const BOARD_ID= 'qr3AcASr';
-const BASE    = 'https://api.trello.com/1';
-
-let trelloLists=[], trelloCards=[], trelloConnected=false;
-
-async function trello(path, method='GET', body=null){
-  const sep=path.includes('?')?'&':'?';
-  const url=`${BASE}${path}${sep}key=${API_KEY}&token=${TOKEN}`;
-  const o={method,headers:{'Content-Type':'application/json'}};
-  if(body)o.body=JSON.stringify(body);
-  const r=await fetch(url,o);
-  if(!r.ok)throw new Error(r.status);
-  return r.json();
-}
-
-async function initTrello(){
-  try{
-    [trelloLists,trelloCards]=await Promise.all([
-      trello(`/boards/${BOARD_ID}/lists?fields=id,name`),
-      trello(`/boards/${BOARD_ID}/cards?fields=id,name,desc,idList,labels,due,shortUrl`),
-    ]);
-    trelloConnected=true;
-    setBadge(true);
-    renderTrelloPage();
-    toast('Trello connected ✓','#16a34a');
-  }catch{
-    trelloConnected=false;
-    setBadge(false);
-  }
-}
-
-function setBadge(ok){
-  const b=document.getElementById('trelloBadge');
-  b.innerHTML=`<div class="trello-dot" style="background:${ok?'var(--green)':'var(--red)'}"></div>${ok?'Trello Live':'Trello Offline'}`;
-}
-
-function renderTrelloPage(){
-  const el=document.getElementById('trelloContent');
-  if(!trelloConnected){el.innerHTML=`<div class="empty"><i class="fas fa-sync"></i><h3>Not Connected</h3><p>Trello is offline. Check your internet connection.</p><button class="btn btn-green" style="margin-top:14px" onclick="initTrello()">Retry</button></div>`;return;}
-  el.innerHTML=`
-    <p style="color:var(--text-mid);font-size:13px;margin-bottom:20px">Synced with Trello board. ${trelloCards.length} cards across ${trelloLists.length} lists.</p>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      ${trelloLists.map(l=>{
-        const lc=trelloCards.filter(c=>c.idList===l.id);
-        return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px">
-          <div style="font-weight:600;font-size:13px;margin-bottom:8px">${esc(l.name)} <span style="color:var(--text-light);font-weight:400">(${lc.length} cards)</span></div>
-          ${lc.map(c=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-mid)">${esc(c.name)}</div>`).join('')}
-          ${lc.length===0?`<div style="font-size:12px;color:var(--text-light)">No cards</div>`:''}
-        </div>`;
-      }).join('')}
-    </div>`;
-}
-
-// ── LOCAL DATA ──
-let store = JSON.parse(localStorage.getItem('btstore2')||'null')||{
-  projects:[
-    {id:1,name:'E-Commerce App',desc:'Testing the online shop platform'},
-    {id:2,name:'Mobile Banking',desc:'Security and functional testing'},
-  ],
-  cases:[
-    {id:1,title:'Step Deletion Functionality',desc:'Ensure users can remove a step they no longer need.',project:1,priority:'medium',status:'approved',cat:'functional',pre:'',steps:'1. Open test case editor\n2. Add multiple steps\n3. Click delete on a step',exp:'Step removed from list',ai:false,date:'2026-06-01',boardCol:'approved'},
-    {id:2,title:'Tag Comma-Separation Logic',desc:'Verify that tags are correctly parsed when separated by commas.',project:1,priority:'low',status:'approved',cat:'functional',pre:'',steps:'1. Open test case\n2. Enter tags with commas\n3. Save',exp:'Tags split correctly',ai:false,date:'2026-06-01',boardCol:'approved'},
-    {id:3,title:'Category Dropdown Options',desc:'Ensure all 8 testing types are available and selectable.',project:1,priority:'high',status:'draft',cat:'functional',pre:'',steps:'1. Open new test case\n2. Click category dropdown',exp:'All 8 categories shown',ai:false,date:'2026-06-02',boardCol:'draft'},
-    {id:4,title:'Website URL Format Validation',desc:'Verify the tool detects and flags invalid URL formats.',project:2,priority:'medium',status:'draft',cat:'functional',pre:'',steps:'1. Enter invalid URL\n2. Save',exp:'Validation error shown',ai:false,date:'2026-06-03',boardCol:'draft'},
-    {id:5,title:'Multi-Step Addition Logic',desc:'Confirm that clicking "+ Add Step" generates new input rows.',project:2,priority:'high',status:'draft',cat:'functional',pre:'',steps:'1. Click + Add Step\n2. Check if new row appears',exp:'New step row added',ai:false,date:'2026-06-04',boardCol:'draft'},
-    {id:6,title:'Verify Mandatory Title Field',desc:'Ensure the system prevents saving if the Title field is empty.',project:1,priority:'high',status:'draft',cat:'functional',pre:'',steps:'1. Leave title empty\n2. Click save',exp:'Error: Title required',ai:false,date:'2026-06-05',boardCol:'draft'},
-  ],
-  runs:[],
-  defects:[],
-  trash:[],
-  nextId:{project:3,case:7,run:1,defect:1}
-};
-let editCase=null, editDefect=null, aiResult='', dragId=null;
-
-// ── CLOUD SYNC (Supabase) ─────────────────────────────────────────────
-//
-// The tool originally kept everything in localStorage, which is tied to one
-// browser on one machine — open the site anywhere else and it was empty.
-// This layer mirrors the same data to a hosted Postgres database so it
-// follows you everywhere.
-//
-// Design: the whole store is kept as a single JSON document rather than
-// normalised into tables. The dataset is small and is always read and written
-// as a whole, so a document row matches how the data is actually used and
-// avoids rewriting every render function. If the tool later needs to query
-// across cases (for example "all high-priority cases in any project"), that is
-// the point to normalise.
-//
-// localStorage is kept as a mirror, so the tool still works offline and a
-// database outage cannot lose work.
-
-const CLOUD = {
-  url:   'https://nnwfhtdujqagraafopjb.supabase.co',
-  key:   'sb_publishable_YhNaNXK1iID1_eQnV1Bo3Q_XuiuWyZz',
-  table: 'app_state',
-  rowId: 'btstore2'
-};
-
-let db = null;            // Supabase client, null when not configured
-let cloudReady = false;   // true once the initial load has succeeded
-let saveTimer = null;     // debounce handle
-
-function cloudConfigured(){
-  return CLOUD.url.startsWith('http') && CLOUD.key.length > 20
-      && typeof window.supabase !== 'undefined';
-}
-
-function initCloud(){
-  if(!cloudConfigured()) return false;
-  try{
-    db = window.supabase.createClient(CLOUD.url, CLOUD.key);
-    return true;
-  }catch(e){
-    console.warn('Cloud sync unavailable:', e);
-    return false;
-  }
-}
-
-// Pulls the stored document. On a first run the remote row is empty, so the
-// local seed data is pushed up instead.
-async function loadFromCloud(){
-  if(!db) return false;
-  try{
-    const { data, error } = await db
-      .from(CLOUD.table).select('data').eq('id', CLOUD.rowId).maybeSingle();
-    if(error) throw error;
-
-    if(data && data.data && Array.isArray(data.data.cases)){
-      store = data.data;
-      localStorage.setItem('btstore2', JSON.stringify(store));
-      cloudReady = true;
-      return true;
-    }
-
-    cloudReady = true;
-    await pushToCloud();
-    return false;
-  }catch(e){
-    console.warn('Could not load from cloud:', e);
-    cloudReady = false;
-    return false;
-  }
-}
-
-async function pushToCloud(){
-  if(!db || !cloudReady) return;
-  try{
-    const { error } = await db.from(CLOUD.table).upsert({
-      id: CLOUD.rowId,
-      data: store,
-      updated_at: new Date().toISOString()
-    });
-    if(error) throw error;
-    saveTimer = null;
-    setCloudBadge('saved');
-  }catch(e){
-    console.warn('Could not save to cloud:', e);
-    setCloudBadge('error');
-  }
-}
-
-// saveStore stays synchronous, so none of the existing call sites change.
-// localStorage is written immediately; the cloud write is debounced so a burst
-// of edits becomes one request rather than twenty.
-function saveStore(){
-  localStorage.setItem('btstore2', JSON.stringify(store));
-  if(!db || !cloudReady) return;
-  setCloudBadge('saving');
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(pushToCloud, 800);
-}
-
-function setCloudBadge(state){
-  const el = document.getElementById('cloudBadge');
-  if(!el) return;
-  const map = {
-    saving: ['var(--yellow)',     'Saving…'],
-    saved:  ['var(--green)',      'Cloud Synced'],
-    error:  ['var(--red)',        'Offline — saved locally'],
-    local:  ['var(--text-light)', 'Local only']
-  };
-  const [colour, label] = map[state] || map.local;
-  el.innerHTML = `<div class="trello-dot" style="background:${colour}"></div>${label}`;
-}
-
-// Warn before closing if a debounced save is still pending.
-window.addEventListener('beforeunload', e => {
-  if(saveTimer){ e.preventDefault(); e.returnValue = ''; }
-});
-
-// ── NAVIGATION ──
-const PAGE_META={
-  dashboard:{icon:'fa-th-large',label:'Dashboard'},
-  projects:{icon:'fa-folder',label:'Projects'},
-  testcases:{icon:'fa-flask',label:'Test Cases'},
-  testruns:{icon:'fa-play',label:'Test Runs'},
-  defects:{icon:'fa-bug',label:'Defects'},
-  boards:{icon:'fa-columns',label:'Boards'},
-  guide:{icon:'fa-question-circle',label:'Guide'},
-  trello:{icon:'fa-sync',label:'Trello Sync'},
-};
-
-// ── MOBILE NAVIGATION ──
-// On phones the sidebar is off-canvas. These drive it; on desktop the CSS
-// ignores the class entirely, so the same code is harmless at any width.
-function toggleNav(){
-  const open = document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('navOverlay').classList.toggle('show', open);
-  document.getElementById('menuBtn')?.setAttribute('aria-expanded', open);
-  // Stop the page behind the drawer scrolling under your finger.
-  document.body.style.overflow = open ? 'hidden' : '';
-}
-
-function closeNav(){
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('navOverlay').classList.remove('show');
-  document.getElementById('menuBtn')?.setAttribute('aria-expanded', false);
-  document.body.style.overflow = '';
-}
-
-function goTo(page, navEl){
-  closeNav();                 // picking a page dismisses the drawer
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+page)?.classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  if(navEl) navEl.classList.add('active');
-  const m=PAGE_META[page]||{icon:'fa-circle',label:page};
-  document.getElementById('pageTitle').innerHTML=`<i class="fas ${m.icon}" style="color:var(--green);font-size:13px"></i> ${m.label}`;
-  const renders={dashboard:renderDash,projects:renderProjects,testcases:renderCases,testruns:renderRuns,defects:renderDefects,boards:renderBoards,trello:renderTrelloPage};
-  renders[page]?.();
-}
-
-// ── DASHBOARD ──
-function renderDash(){
-  const total=store.cases.length;
-  const approved=store.cases.filter(c=>c.status==='approved').length;
-  const drafts=store.cases.filter(c=>c.status==='draft').length;
-  const critical=store.cases.filter(c=>c.priority==='critical').length;
-  const aiGen=store.cases.filter(c=>c.ai).length;
-  document.getElementById('statsGrid').innerHTML=[
-    ['Total Cases',total,'fa-flask','#dcfce7','#15803d'],
-    ['Approved',approved,'fa-check-circle','#dcfce7','#15803d'],
-    ['Drafts',drafts,'fa-clock','#fef9c3','#a16207'],
-    ['Critical',critical,'fa-exclamation-triangle','#fee2e2','#dc2626'],
-    ['AI Generated',aiGen,'fa-magic','#f3e8ff','#7c3aed'],
-  ].map(([l,v,ic,bg,col])=>`
-    <div class="stat-card">
-      <div><div class="stat-label">${l}</div><div class="stat-val">${v}</div></div>
-      <div class="stat-ico" style="background:${bg}"><i class="fas ${ic}" style="color:${col}"></i></div>
-    </div>`).join('');
-
-  const recent=[...store.cases].reverse().slice(0,4);
-  document.getElementById('recentCasesWrap').innerHTML=`<div class="cards-grid">${recent.map(c=>caseCardHTML(c)).join('')}</div>`;
-
-  const rd=[...store.defects].reverse().slice(0,4);
-  document.getElementById('recentDefects').innerHTML=rd.map(d=>`
-    <tr>
-      <td><strong>${esc(d.title)}</strong></td>
-      <td>${priBadge(d.severity)}</td>
-      <td>${defStatBadge(d.status)}</td>
-      <td>${projName(d.project)}</td>
-    </tr>`).join('')||`<tr><td colspan="4"><div class="empty" style="padding:30px"><i class="fas fa-bug"></i><h3>No defects yet</h3></div></td></tr>`;
-}
-
-// ── PROJECTS ──
-function renderProjects(){
-  fillProjSel('rProj','dProj','cProj');
-  document.getElementById('projectsBody').innerHTML=store.projects.map(p=>`
-    <tr>
-      <td><strong>${esc(p.name)}</strong></td>
-      <td style="color:var(--text-mid)">${esc(p.desc||'')}</td>
-      <td>${store.cases.filter(c=>c.project===p.id).length}</td>
-      <td>${store.defects.filter(d=>d.project===p.id).length}</td>
-      <td><button class="btn btn-ghost" style="color:var(--red);font-size:12px" onclick="delProject(${p.id})"><i class="fas fa-trash"></i></button></td>
-    </tr>`).join('')||`<tr><td colspan="5"><div class="empty"><i class="fas fa-folder"></i><h3>No projects yet</h3><p>Create your first project to get started.</p></div></td></tr>`;
-}
-function saveProject(){
-  const name=document.getElementById('pName').value.trim();if(!name)return;
-  store.projects.push({id:store.nextId.project++,name,desc:document.getElementById('pDesc').value.trim()});
-  saveStore();closeModal('projectModal');
-  document.getElementById('pName').value='';document.getElementById('pDesc').value='';
-  renderProjects();toast('Project created ✓','#16a34a');
-}
-function delProject(id){if(!confirm('Delete?'))return;store.projects=store.projects.filter(p=>p.id!==id);saveStore();renderProjects();toast('Deleted','#ef4444');}
-
-// ── TEST CASES ──
-function getCaseFilter(){
-  return {
-    q:(document.getElementById('caseSearch')?.value||document.getElementById('globalSearch')?.value||'').toLowerCase(),
-    status:document.getElementById('filterStatus')?.value||'',
-    priority:document.getElementById('filterPriority')?.value||'',
-    cat:document.getElementById('filterCategory')?.value||'',
-  };
-}
-function filterCases(){renderCases();}
-
-function renderCases(){
-  const f=getCaseFilter();
-  let cases=[...store.cases].filter(c=>{
-    if(f.q&&!c.title.toLowerCase().includes(f.q)&&!(c.desc||'').toLowerCase().includes(f.q))return false;
-    if(f.status&&c.status!==f.status)return false;
-    if(f.priority&&c.priority!==f.priority)return false;
-    if(f.cat&&c.cat!==f.cat)return false;
-    return true;
-  });
-  document.getElementById('caseCount').textContent=`${cases.length} test case${cases.length!==1?'s':''}`;
-  document.getElementById('casesGrid').innerHTML=cases.length
-    ? cases.map(c=>caseCardHTML(c)).join('')
-    : `<div style="grid-column:1/-1"><div class="empty"><i class="fas fa-flask"></i><h3>No test cases</h3><p>Create your first test case or generate with AI.</p></div></div>`;
-}
-
-function caseCardHTML(c){
-  return `
-    <div class="case-card" onclick="openCaseModal(${c.id})">
-      <div class="case-card-actions">
-        <button class="card-act-btn" onclick="event.stopPropagation();openCaseModal(${c.id})"><i class="fas fa-edit"></i></button>
-        <button class="card-act-btn del" onclick="event.stopPropagation();delCase(${c.id})"><i class="fas fa-trash"></i></button>
-      </div>
-      <div class="case-card-title">${esc(c.title)}</div>
-      ${c.desc?`<div class="case-card-desc">${esc(c.desc.slice(0,80))}${c.desc.length>80?'…':''}</div>`:''}
-      <div class="case-card-tags">
-        ${priBadge(c.priority)}
-        ${statBadge(c.status)}
-        ${c.cat?`<span class="badge b-func">${c.cat}</span>`:''}
-        ${c.ai?`<span class="badge" style="background:#f3e8ff;color:#7c3aed"><i class="fas fa-magic" style="font-size:9px"></i> AI</span>`:''}
-      </div>
-      <div class="case-card-footer">
-        <span>${(c.steps||'').split('\n').filter(Boolean).length} step${(c.steps||'').split('\n').filter(Boolean).length!==1?'s':''}</span>
-        <span>${c.date||''}</span>
-      </div>
-    </div>`;
-}
-
-function openCaseModal(id){
-  editCase=id||null;
-
-  document.getElementById('caseMT').textContent=editCase?'Edit Test Case':'New Test Case';
-
-  if(editCase){
-    const c=store.cases.find(x=>x.id===editCase);
-    if(!c)return;
-
-    document.getElementById('cId').value=c.jsonId||c.externalId||'';
-    document.getElementById('cTitle').value=c.title||'';
-    document.getElementById('cLayer').value=c.cat||c.layer||'functional';
-    document.getElementById('cPriority').value=c.priority||'medium';
-    document.getElementById('cStatus').value=c.status||'draft';
-    document.getElementById('cDate').value=c.date||new Date().toISOString().split('T')[0];
-    document.getElementById('cDescription').value=c.desc||c.description||'';
-    document.getElementById('cPreconditions').value=c.pre||c.preconditions||'';
-    document.getElementById('cSteps').value=c.steps||'';
-    document.getElementById('cExpectedResult').value=c.exp||c.expected_result||'';
-    document.getElementById('cTags').value=c.tags||'';
-  }else{
-    ['cId','cTitle','cDescription','cPreconditions','cSteps','cExpectedResult','cTags'].forEach(id=>{
-      document.getElementById(id).value='';
-    });
-
-    document.getElementById('cLayer').value='functional';
-    document.getElementById('cPriority').value='medium';
-    document.getElementById('cStatus').value='draft';
-    document.getElementById('cDate').value=new Date().toISOString().split('T')[0];
-  }
-
-  openModal('caseModal');
-}
-
-function saveCase(){
-  const title=document.getElementById('cTitle').value.trim();
-  const jsonId=document.getElementById('cId').value.trim();
-
-  if(!title){
-    toast('Test case title is required','#dc2626');
-    return;
-  }
-
-  if(!jsonId){
-    toast('Test case ID is required','#dc2626');
-    return;
-  }
-
-  const status=document.getElementById('cStatus').value;
-
-  const data={
-    jsonId:jsonId,
-    title:title,
-    priority:document.getElementById('cPriority').value,
-    status:status,
-    cat:document.getElementById('cLayer').value,
-    desc:document.getElementById('cDescription').value.trim(),
-    pre:document.getElementById('cPreconditions').value.trim(),
-    steps:document.getElementById('cSteps').value.trim(),
-    exp:document.getElementById('cExpectedResult').value.trim(),
-    tags:document.getElementById('cTags').value.trim(),
-    date:document.getElementById('cDate').value||new Date().toISOString().split('T')[0],
-    ai:false
-  };
-
-  if(editCase){
-    const i=store.cases.findIndex(c=>c.id===editCase);
-    if(i===-1)return;
-
-    store.cases[i]={...store.cases[i],...data,boardCol:status};
-    toast('Test case updated ✓','#16a34a');
-  }else{
-    store.cases.push({
-      id:store.nextId.case++,
-      boardCol:status,
-      ...data
-    });
-    toast('Test case saved ✓','#16a34a');
-  }
-
-  editCase=null;
-  saveStore();
-  closeModal('caseModal');
-  renderCases();
-  renderDash();
-
-  if(typeof renderBoards==='function')renderBoards();
-}
-
-function delCase(id){
-  if(!confirm('Move to trash?'))return;
-  const c=store.cases.find(x=>x.id===id);
-  store.trash.push({...c,deletedAt:new Date().toISOString()});
-  store.cases=store.cases.filter(x=>x.id!==id);
-  saveStore();renderCases();renderDash();renderBoards();toast('Moved to trash','#f97316');
-}
-
-// ── TEST RUNS ──
-function renderRuns(){
-  fillProjSel('rProj');
-  const empty=store.runs.length===0;
-  document.getElementById('runsEmpty').style.display=empty?'flex':'none';
-  document.getElementById('runsTable').style.display=empty?'none':'table';
-  document.getElementById('runsBody').innerHTML=store.runs.map(r=>`
-    <tr>
-      <td><strong>${esc(r.name)}</strong></td>
-      <td>${projName(r.project)}</td>
-      <td>${runStatBadge(r.status)}</td>
-      <td>${r.cases}</td>
-      <td style="color:#16a34a;font-weight:600">${r.passed}</td>
-      <td style="color:#dc2626;font-weight:600">${r.failed}</td>
-      <td><button class="btn btn-ghost" style="color:var(--red)" onclick="delRun(${r.id})"><i class="fas fa-trash"></i></button></td>
-    </tr>`).join('');
-}
-function saveRun(){
-  const name=document.getElementById('rName').value.trim();if(!name)return;
-  store.runs.push({id:store.nextId.run++,name,project:parseInt(document.getElementById('rProj').value)||1,status:document.getElementById('rStat').value,cases:0,passed:0,failed:0});
-  saveStore();closeModal('runModal');renderRuns();toast('Test run created ✓','#16a34a');
-}
-function delRun(id){if(!confirm('Delete?'))return;store.runs=store.runs.filter(r=>r.id!==id);saveStore();renderRuns();toast('Deleted','#ef4444');}
-
-// ── DEFECTS ──
-function renderDefects(){
-  fillProjSel('dProj');
-  const empty=store.defects.length===0;
-  document.getElementById('defectsEmpty').style.display=empty?'flex':'none';
-  document.getElementById('defectsTable').style.display=empty?'none':'table';
-  document.getElementById('defectsBody').innerHTML=store.defects.map(d=>`
-    <tr>
-      <td style="font-family:monospace;font-size:11px;color:var(--text-light)">DEF-${String(d.id).padStart(3,'0')}</td>
-      <td><strong>${esc(d.title)}</strong></td>
-      <td>${priBadge(d.severity)}</td>
-      <td>${defStatBadge(d.status)}</td>
-      <td>${projName(d.project)}</td>
-      <td style="display:flex;gap:4px">
-        <button class="btn btn-ghost" style="font-size:11px" onclick="openDefectModal(${d.id})"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-ghost" style="color:var(--red);font-size:11px" onclick="delDefect(${d.id})"><i class="fas fa-trash"></i></button>
-      </td>
-    </tr>`).join('');
-}
-
-function openDefectModal(id){
-  editDefect=id||null;
-  fillProjSel('dProj');
-  document.getElementById('defMT').textContent=editDefect?'Edit Defect':'New Defect';
-  if(editDefect){
-    const d=store.defects.find(x=>x.id===editDefect);
-    document.getElementById('dTitle').value=d.title;
-    document.getElementById('dSev').value=d.severity;
-    document.getElementById('dStat').value=d.status;
-    document.getElementById('dProj').value=d.project;
-    document.getElementById('dDesc').value=d.desc||'';
-  }else{
-    ['dTitle','dDesc'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('dSev').value='medium';
-    document.getElementById('dStat').value='open';
-  }
-  openModal('defectModal');
-}
-
-function saveDefect(){
-  const title=document.getElementById('dTitle').value.trim();if(!title)return;
-  const data={title,severity:document.getElementById('dSev').value,status:document.getElementById('dStat').value,
-    project:parseInt(document.getElementById('dProj').value)||1,desc:document.getElementById('dDesc').value.trim()};
-  if(editDefect){
-    const i=store.defects.findIndex(d=>d.id===editDefect);
-    store.defects[i]={...store.defects[i],...data};
-    toast('Defect updated ✓','#16a34a');
-  }else{
-    store.defects.push({id:store.nextId.defect++,...data});
-    toast('Defect saved ✓','#16a34a');
-  }
-  editDefect=null;saveStore();closeModal('defectModal');renderDefects();renderDash();
-}
-function delDefect(id){if(!confirm('Delete?'))return;store.defects=store.defects.filter(d=>d.id!==id);saveStore();renderDefects();renderDash();toast('Deleted','#ef4444');}
-
-// ── BOARDS ──
-const BCOLS=[
-  {id:'draft',name:'Draft',color:'#6b7280'},
-  {id:'ready',name:'Ready',color:'#3b82f6'},
-  {id:'review',name:'In Review',color:'#eab308'},
-  {id:'approved',name:'Approved',color:'#16a34a'},
-];
-
-function renderBoards(){
-  const kb=document.getElementById('kanban');
-  kb.innerHTML=BCOLS.map(col=>{
-    const cc=store.cases.filter(c=>(c.boardCol||'draft')===col.id);
-    return `
-      <div class="k-col">
-        <div class="k-col-hd">
-          <div class="k-col-title"><div class="kdot" style="background:${col.color}"></div>${col.name}</div>
-          <span class="k-col-count">${cc.length}</span>
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="mb-0">&copy; <span id="year"></span> BeyondTheBugs | Novithan Naidoo</p>
+                </div>
+            </div>
         </div>
-        <div class="k-col-body" id="kb-${col.id}">
-          ${cc.map(c=>`
-            <div class="k-card" draggable="true" data-id="${c.id}"
-              ondragstart="onDS(event)" ondragend="onDE(event)">
-              <div class="k-card-title">${esc(c.title)}</div>
-              <div class="k-card-foot">
-                ${priBadge(c.priority)}
-                ${c.cat?`<span class="badge b-func">${c.cat}</span>`:''}
-              </div>
-            </div>`).join('')}
-          <div class="k-drop" data-col="${col.id}"
-            ondragover="onDO(event)" ondragleave="onDL(event)" ondrop="onDP(event,'${col.id}')"></div>
-        </div>
-      </div>`;
-  }).join('');
-}
+    </footer>
 
-function onDS(e){dragId=e.currentTarget.dataset.id;e.currentTarget.classList.add('dragging');}
-function onDE(e){e.currentTarget.classList.remove('dragging');}
-function onDO(e){e.preventDefault();e.currentTarget.classList.add('over');}
-function onDL(e){e.currentTarget.classList.remove('over');}
-function onDP(e,col){
-  e.preventDefault();e.currentTarget.classList.remove('over');
-  if(!dragId)return;
-  const c=store.cases.find(x=>x.id===parseInt(dragId));
-  if(c&&c.boardCol!==col){c.boardCol=col;saveStore();renderBoards();toast(`Moved to ${BCOLS.find(b=>b.id===col)?.name}`,'#16a34a');}
-  dragId=null;
-}
-
-// ── TRASH ──
-function openTrash(){
-  if(store.trash.length===0){toast('Trash is empty','#6b7280');return;}
-  const list=store.trash.map(c=>`• ${c.title}`).join('\n');
-  if(confirm(`Trash (${store.trash.length} items):\n\n${list}\n\nPermanently delete all?`)){
-    store.trash=[];saveStore();toast('Trash emptied','#ef4444');
-  }
-}
-
-// ── AI ──
-function openAI(){openModal('aiModal');}
-
-function runAI(){
-  const p=document.getElementById('aiPrompt').value.trim();
-  if(!p){document.getElementById('aiPrompt').focus();return;}
-  const type=document.getElementById('aiType').value;
-  document.getElementById('aiBox').style.display='block';
-  document.getElementById('aiActs').style.display='none';
-  document.getElementById('aiOut').innerHTML='<span class="ai-think">✦ Generating test cases...</span>';
-  setTimeout(()=>{
-    aiResult=genAI(p,type);
-    document.getElementById('aiOut').textContent=aiResult;
-    document.getElementById('aiActs').style.display='flex';
-  },900);
-}
-
-function genAI(p,type){
-  const t=p.slice(0,55);
-  if(type==='smoke')return `SMOKE TEST — ${t}\n\n[ ] App loads without errors\n[ ] Core feature is accessible\n[ ] Basic happy path works\n[ ] No console errors on load\n[ ] Navigation works\n[ ] Login/logout functional\n[ ] Key API endpoints respond`;
-  if(type==='regression')return `REGRESSION CHECKLIST — ${t}\n\n[ ] Previous bug fixes still working\n[ ] Core user flows unaffected\n[ ] Login and authentication\n[ ] Data save and retrieve\n[ ] UI renders on all screen sizes\n[ ] API endpoints return expected responses\n[ ] Error handling works\n[ ] Permissions and roles correct`;
-  if(type==='api')return `API TEST CASES — ${t}\n\nTC-001: Valid GET Request\nEndpoint: GET /api/resource\nExpected Status: 200\nExpected: Returns correct data\n\nTC-002: Create Resource\nEndpoint: POST /api/resource\nBody: {valid payload}\nExpected Status: 201\nExpected: Resource created\n\nTC-003: Unauthorised Request\nExpected Status: 401\n\nTC-004: Invalid Input\nExpected Status: 400\nExpected: Validation error`;
-  if(type==='security')return `SECURITY TEST CASES — ${t}\n\nTC-001: SQL Injection\nInput: ' OR 1=1 --\nExpected: Input rejected\n\nTC-002: XSS Attack\nInput: <script>alert('xss')<\/script>\nExpected: Script not executed\n\nTC-003: Brute Force\nAction: 10 failed login attempts\nExpected: Account locked\n\nTC-004: Unauthorised Access\nExpected: 403 Forbidden`;
-  if(type==='exploratory')return `EXPLORATORY TESTING — ${t}\n\nCharter: Explore ${t} for unexpected behaviour\n\nAreas to explore:\n• Happy path with valid data\n• Boundary values and edge cases\n• Invalid and unexpected inputs\n• Network failure scenarios\n• Mobile and cross-browser behaviour\n\nRisks:\n• Data loss on errors\n• Inconsistent UI states\n• Permission bypass`;
-  return `MANUAL TEST CASES — ${t}\n\nTC-001: Happy Path\nPreconditions: System is running\nSteps:\n  1. Navigate to the feature\n  2. Enter valid data\n  3. Submit\nExpected: Success shown\nPriority: High\n\nTC-002: Empty Input Validation\nSteps:\n  1. Leave all fields empty\n  2. Click submit\nExpected: Validation errors shown\nPriority: High\n\nTC-003: Invalid Data\nSteps:\n  1. Enter invalid data\n  2. Submit\nExpected: Error message shown\nPriority: Medium\n\nTC-004: Boundary Values\nSteps:\n  1. Enter max allowed values\nExpected: System handles gracefully\nPriority: Low`;
-}
-
-function saveAI(){
-  const pri=document.getElementById('aiPri').value;
-  const proj=store.projects[0]?.id||1;
-  const lines=aiResult.split('\n').filter(l=>l.match(/^TC-\d+:/));
-  let count=0;
-  if(lines.length){
-    lines.forEach(l=>{
-      const title=l.replace(/TC-\d+:\s*/,'').trim();
-      if(title){store.cases.push({id:store.nextId.case++,title,project:proj,priority:pri,status:'draft',cat:'functional',desc:'AI Generated',pre:'',steps:'',exp:'',date:new Date().toISOString().split('T')[0],ai:true,boardCol:'draft'});count++;}
-    });
-  }else{
-    const title=document.getElementById('aiPrompt').value.trim().slice(0,70);
-    store.cases.push({id:store.nextId.case++,title:`AI: ${title}`,project:proj,priority:pri,status:'draft',cat:'functional',desc:aiResult.slice(0,100),pre:'',steps:aiResult,exp:'',date:new Date().toISOString().split('T')[0],ai:true,boardCol:'draft'});
-    count=1;
-  }
-  saveStore();closeModal('aiModal');renderCases();renderDash();
-  toast(`${count} test case${count>1?'s':''} saved ✓`,'#16a34a');
-}
-
-function copyAI(){navigator.clipboard.writeText(aiResult).then(()=>toast('Copied!','#16a34a'));}
-function clearAI(){document.getElementById('aiOut').textContent='';document.getElementById('aiBox').style.display='none';aiResult='';}
-
-// ── HELPERS ──
-function projName(id){return store.projects.find(p=>p.id===id)?.name||'Unknown';}
-function priBadge(p){const m={critical:'b-critical',high:'b-high',medium:'b-medium',low:'b-low'};return `<span class="badge ${m[p]||'b-medium'}">${p||'medium'}</span>`;}
-function statBadge(s){const m={approved:'b-approved',draft:'b-draft',failed:'b-failed'};return `<span class="badge ${m[s]||'b-draft'}">${s}</span>`;}
-function runStatBadge(s){const m={passed:'b-approved',failed:'b-failed',running:'b-running',pending:'b-pending'};return `<span class="badge ${m[s]||'b-pending'}">${s}</span>`;}
-function defStatBadge(s){const m={open:'b-open',closed:'b-closed',inprog:'b-inprog'};const l={open:'Open',closed:'Closed',inprog:'In Progress'};return `<span class="badge ${m[s]||'b-open'}">${l[s]||s}</span>`;}
-function fillProjSel(...ids){ids.forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML=store.projects.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');});}
-function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-function openModal(id){const el=document.getElementById(id);el.classList.add('open');const modal=el.querySelector('.modal');if(modal)modal.scrollTop=0;}
-function closeModal(id){document.getElementById(id).classList.remove('open');if(id==='caseModal')editCase=null;if(id==='defectModal')editDefect=null;}
-function closeOut(id,e){if(e.target===document.getElementById(id))closeModal(id);}
-
-function toast(msg,color){
-  const w=document.getElementById('tw');
-  const el=document.createElement('div');
-  el.className='toast';
-  el.innerHTML = '<div class="td" style="background:' + color + '"></div>' + msg;
-  w.appendChild(el);setTimeout(()=>el.remove(),3000);
-}
-
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){
-    ['aiModal','projectModal','caseModal','runModal','defectModal'].forEach(closeModal);
-    closeNav();
-  }
-});
-
-// Rotating a phone to landscape can cross the breakpoint while the drawer is
-// open, which would leave the overlay covering a desktop-width layout.
-window.addEventListener('resize', () => {
-  if(window.innerWidth > 720) closeNav();
-});
-
-// ── INIT ──
-//
-// Cloud data is loaded before the first render, so the tool shows what is in
-// the database rather than briefly showing stale local data and then swapping.
-// If the database is unreachable the local copy is used and the tool still
-// works — the header just says "Offline".
-(async function bootstrap(){
-  if(initCloud()){
-    setCloudBadge('saving');
-    await loadFromCloud();
-    setCloudBadge(cloudReady ? 'saved' : 'error');
-  }else{
-    setCloudBadge('local');
-  }
-
-  fillProjSel('cProj','rProj','dProj');
-  renderDash();
-  initTrello();
-})();
-</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="matrix.js"></script>
+    <script src="fluid-trail.js"></script>
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
 </body>
 </html>
