@@ -1,53 +1,53 @@
-// === ANIMATED CODE BACKGROUND ===
-$(document).ready(function() {
-    createCodeBackground();
-    initBugGame();
-    loadProjects();
-    initAdmin();
-});
+// // === ANIMATED CODE BACKGROUND ===
+// $(document).ready(function() {
+//     createCodeBackground();
+//     initBugGame();
+//     loadProjects();
+//     initAdmin();
+// });
 
-// Create floating code bugs in background
-function createCodeBackground() {
-    const background = $('#codeBackground');
-    const bugSymbols = ['🐛', '🐞', '🦗', '🪲'];
-    const codeSnippets = [
-        'if(bug) { fix(); }',
-        'test.run();',
-        'assert(quality);',
-        'function debug()',
-        'while(testing)',
-        '// QA Testing',
-        'verify.all();',
-        '<bug>found</bug>'
-    ];
+// // Create floating code bugs in background
+// function createCodeBackground() {
+//     const background = $('#codeBackground');
+//     const bugSymbols = ['🐛', '🐞', '🦗', '🪲'];
+//     const codeSnippets = [
+//         'if(bug) { fix(); }',
+//         'test.run();',
+//         'assert(quality);',
+//         'function debug()',
+//         'while(testing)',
+//         '// QA Testing',
+//         'verify.all();',
+//         '<bug>found</bug>'
+//     ];
     
-    // Add 15 floating code bugs
-    for(let i = 0; i < 15; i++) {
-        const bug = $('<div class="code-bug"></div>');
-        bug.html(bugSymbols[Math.floor(Math.random() * bugSymbols.length)]);
-        bug.css({
-            left: Math.random() * 100 + '%',
-            top: Math.random() * 100 + '%',
-            animationDelay: Math.random() * 15 + 's',
-            animationDuration: (10 + Math.random() * 10) + 's'
-        });
-        background.append(bug);
-    }
+//     // Add 15 floating code bugs
+//     for(let i = 0; i < 15; i++) {
+//         const bug = $('<div class="code-bug"></div>');
+//         bug.html(bugSymbols[Math.floor(Math.random() * bugSymbols.length)]);
+//         bug.css({
+//             left: Math.random() * 100 + '%',
+//             top: Math.random() * 100 + '%',
+//             animationDelay: Math.random() * 15 + 's',
+//             animationDuration: (10 + Math.random() * 10) + 's'
+//         });
+//         background.append(bug);
+//     }
     
-    // Add floating code snippets
-    for(let i = 0; i < 10; i++) {
-        const code = $('<div class="code-bug"></div>');
-        code.text(codeSnippets[Math.floor(Math.random() * codeSnippets.length)]);
-        code.css({
-            left: Math.random() * 100 + '%',
-            top: Math.random() * 100 + '%',
-            animationDelay: Math.random() * 20 + 's',
-            fontSize: '12px',
-            fontFamily: 'Courier New, monospace'
-        });
-        background.append(code);
-    }
-}
+//     // Add floating code snippets
+//     for(let i = 0; i < 10; i++) {
+//         const code = $('<div class="code-bug"></div>');
+//         code.text(codeSnippets[Math.floor(Math.random() * codeSnippets.length)]);
+//         code.css({
+//             left: Math.random() * 100 + '%',
+//             top: Math.random() * 100 + '%',
+//             animationDelay: Math.random() * 20 + 's',
+//             fontSize: '12px',
+//             fontFamily: 'Courier New, monospace'
+//         });
+//         background.append(code);
+//     }
+// }
 
 // === BUG HUNT GAME ===
 let gameActive = false;
