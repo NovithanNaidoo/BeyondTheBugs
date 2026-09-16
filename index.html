@@ -50,8 +50,8 @@
         <div class="container text-center">
             <h1 class="display-3 fw-bold animate-fade">Welcome to BeyondTheBugs</h1>
             <p class="lead mb-4 animate-fade">BSC IT Student | Building QA Skills | Exploring Test Automation | Aspiring Software Tester | Class of 2027</p>
-            <a href="#bug-game" class="btn btn-success btn-lg me-2">
-                <i class="fas fa-gamepad"></i> Play Bug Hunt
+            <a href="#test-run" class="btn btn-success btn-lg me-2">
+                <i class="fas fa-vial"></i> See My Tests Run
             </a>
             <a href="projects.html" class="btn btn-outline-light btn-lg">
                 <i class="fas fa-folder-open"></i> View Projects
@@ -59,34 +59,141 @@
         </div>
     </section>
 
-    <!-- Bug Hunt Game -->
-    <section id="bug-game" class="py-5 bg-light">
+    <!-- ═══════════════════════════════════════════════════════════════
+         LIVE TEST RUN
+         Replays a real execution of the EMERGEX automated suite.
+         ═══════════════════════════════════════════════════════════════ -->
+    <section id="test-run" class="py-5">
         <div class="container">
-            <h2 class="text-center mb-4">Bug Hunt Game</h2>
-            <p class="text-center text-muted mb-4">Click the bugs before they escape!</p>
-            
+            <h2 class="text-center mb-2" style="color:#fff">See My Tests Run</h2>
+            <p class="text-center mb-4" style="color:#adb5bd">
+                A real execution of my EMERGEX test suite &mdash; 118 automated tests across six layers.
+            </p>
+
             <div class="row justify-content-center">
-                <div class="col-lg-8">
-                    <div class="game-stats mb-3">
-                        <span>Score: <strong id="score">0</strong></span>
-                        <span>Time: <strong id="timer">30</strong>s</span>
-                        <span>Missed: <strong id="missed">0</strong></span>
+                <div class="col-lg-9">
+                    <div class="terminal" id="terminal">
+                        <div class="terminal-bar">
+                            <span class="tdot tdot-red"></span>
+                            <span class="tdot tdot-amber"></span>
+                            <span class="tdot tdot-green"></span>
+                            <span class="terminal-title">novithan@beyondthebugs — EMERGEX.Tests</span>
+                        </div>
+                        <pre class="terminal-body" id="terminalBody"></pre>
                     </div>
-                    
-                    <div id="gameArea"></div>
-                    
+
                     <div class="text-center mt-3">
-                        <button id="startBtn" class="btn btn-success btn-lg">
-                            <i class="fas fa-play"></i> Start Game
+                        <button id="runTestsBtn" class="btn btn-success btn-lg">
+                            <i class="fas fa-play"></i> Run Test Suite
                         </button>
-                        <button id="resetBtn" class="btn btn-secondary btn-lg" style="display:none;">
-                            <i class="fas fa-redo"></i> Play Again
-                        </button>
+                        <a href="BYB_TestingTool/index.html" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-flask"></i> Open My Testing Tool
+                        </a>
                     </div>
-                    
-                    <div id="gameOver" class="game-over" style="display:none;">
-                        <h3>Game Over!</h3>
-                        <p>Your Score: <span id="finalScore">0</span></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         DEFECTS FOUND
+         ═══════════════════════════════════════════════════════════════ -->
+    <section id="defects" class="py-5">
+        <div class="container">
+            <h2 class="text-center mb-2" style="color:#fff">Defects I Found</h2>
+            <p class="text-center mb-4" style="color:#adb5bd">
+                Four defects in the EMERGEX platform. None was visible through normal manual use &mdash;
+                every one was caught by an automated test.
+            </p>
+
+            <div class="row g-4">
+
+                <div class="col-md-6">
+                    <div class="defect-card defect-critical h-100">
+                        <div class="defect-hd">
+                            <span class="defect-id">DEF-011</span>
+                            <span class="defect-sev sev-critical">Critical</span>
+                        </div>
+                        <h4>Identity documents publicly readable</h4>
+                        <p>
+                            Uploaded NSFAS documents were written to a folder served directly by Apache,
+                            with no authorisation check. I uploaded a document, cleared every cookie,
+                            requested the file and got HTTP 200 with the contents.
+                        </p>
+                        <div class="defect-meta">
+                            <span><i class="fas fa-search"></i> Security test, access control</span>
+                            <span><i class="fas fa-wrench"></i> Store outside the web root; stream via an authenticated handler</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="defect-card defect-high h-100">
+                        <div class="defect-hd">
+                            <span class="defect-id">DEF-010</span>
+                            <span class="defect-sev sev-high">High</span>
+                        </div>
+                        <h4>No room availability check on booking</h4>
+                        <p>
+                            <code>available_rooms</code> was displayed everywhere but never decremented,
+                            and the booking code never read it. A property advertising zero rooms
+                            accepted unlimited bookings.
+                        </p>
+                        <div class="defect-meta">
+                            <span><i class="fas fa-search"></i> Regression test, data integrity</span>
+                            <span><i class="fas fa-wrench"></i> Availability check inside the booking transaction</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="defect-card defect-medium h-100">
+                        <div class="defect-hd">
+                            <span class="defect-id">DEF-012</span>
+                            <span class="defect-sev sev-medium">Medium</span>
+                        </div>
+                        <h4>CSRF block reported as a server crash</h4>
+                        <p>
+                            The CSRF guard returned HTTP 419 &mdash; a framework convention, not a
+                            registered status code. Apache did not recognise it and substituted 500,
+                            so every blocked submission looked like a server error.
+                        </p>
+                        <div class="defect-meta">
+                            <span><i class="fas fa-search"></i> Functional test, CSRF</span>
+                            <span><i class="fas fa-wrench"></i> Return 403 Forbidden</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="defect-card defect-low h-100">
+                        <div class="defect-hd">
+                            <span class="defect-id">DEF-013</span>
+                            <span class="defect-sev sev-low">Low</span>
+                        </div>
+                        <h4>Hidden field stayed visible</h4>
+                        <p>
+                            The script correctly set the <code>hidden</code> attribute, but a
+                            <code>label { display: block }</code> rule in the stylesheet overrode the
+                            browser default. The field was marked hidden and still on screen.
+                        </p>
+                        <div class="defect-meta">
+                            <span><i class="fas fa-search"></i> Regression test, rendering</span>
+                            <span><i class="fas fa-wrench"></i> Add an explicit [hidden] rule</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-12 text-center">
+                    <div class="stat-strip">
+                        <div><strong>36</strong><span>Test cases</span></div>
+                        <div><strong>118</strong><span>Automated tests</span></div>
+                        <div><strong>6</strong><span>Test layers</span></div>
+                        <div><strong>4</strong><span>Defects found</span></div>
+                        <div><strong>46s</strong><span>Full suite runtime</span></div>
                     </div>
                 </div>
             </div>
@@ -191,6 +298,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Custom JS -->
     <script src="script.js"></script>
+    <script src="qa-showcase.js"></script>
     <script src="matrix.js"></script>
     <script src="fluid-trail.js"></script>
 </body>
