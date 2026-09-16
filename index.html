@@ -23,7 +23,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
         <div class="container">
             <a class="navbar-brand" href="index.html">
-                <i class="fas fa-bug"></i> BeyondTheBugs
+                <span class="logo-bug"><i class="fas fa-bug"></i></span><span class="brand-prompt">~/</span><span class="brand-name">BeyondTheBugs</span><span class="brand-caret"></span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -49,7 +49,7 @@
     <section class="hero-section">
         <div class="container text-center">
             <h1 class="display-3 fw-bold animate-fade">Welcome to BeyondTheBugs</h1>
-            <p class="lead mb-4 animate-fade">BSC IT Student | Building QA Skills | Exploring Test Automation | Aspiring Software Tester | Class of 2027</p>
+            <p class="lead mb-4 animate-fade">BSc IT Student | Test Automation with Playwright &amp; NUnit | Test Case Design | Aspiring QA Automation Engineer | Class of 2027</p>
             <a href="#test-run" class="btn btn-success btn-lg me-2">
                 <i class="fas fa-vial"></i> See My Tests Run
             </a>
@@ -207,7 +207,7 @@
             <div class="col-md-6 mb-4">
                 <h2 style="color: white !important;">About Me</h2>
                 <p class="lead" style="color: white !important;">Hi, I'm Novithan</p>
-                <p style="color: white !important;">I'm currently in my final year of a BSc in IT and I have a deep passion for software testing. I am actively learning QA methodologies and manual testing, dedicated to understanding exactly what makes software great</p>
+                <p style="color: white !important;">I'm in my final year of a BSc in IT, focused on test automation. I write test cases from requirements and turn them into executable suites using Playwright and NUnit in C&#35;, across UI, functional, integration, end-to-end, regression and security layers. My most recent suite &mdash; 118 automated tests against a student accommodation platform &mdash; uncovered four defects, including a critical access-control flaw that would not have surfaced through ordinary use.</p>
                 <a href="bio.html" class="btn btn-success">
                     <i class="fas fa-user"></i> Learn More
                 </a>
@@ -223,31 +223,107 @@
     <section class="py-5 bg-light">
         <div class="container">
             <h2 class="text-center mb-5">My Learning Journey</h2>
+            <p class="text-center text-muted mb-5" style="margin-top:-1.5rem">
+                Six test layers, each answering a different question &mdash; so a defect that
+                escapes one is caught by the next.
+            </p>
+
             <div class="row">
                 <div class="col-md-4 mb-4">
                     <div class="card h-100 text-center">
                         <div class="card-body">
-                            <i class="fas fa-vial fa-3x text-success mb-3"></i>
-                            <h4>Manual Testing</h4>
-                            <p>Thorough test case creation and execution</p>
+                            <i class="fas fa-desktop fa-3x text-success mb-3"></i>
+                            <h4>UI Testing</h4>
+                            <p class="layer-q">Does it render correctly?</p>
+                            <p>
+                                Badges, responsive layout, accessible structure. Driven with
+                                Playwright using the Page Object Model, so a markup change is
+                                a one-line fix rather than a rewrite.
+                            </p>
+                            <span class="layer-count">25 tests</span>
                         </div>
                     </div>
                 </div>
+
                 <div class="col-md-4 mb-4">
                     <div class="card h-100 text-center">
                         <div class="card-body">
-                            <i class="fas fa-robot fa-3x text-success mb-3"></i>
-                            <h4>Test Automation</h4>
-                            <p>Building efficient automated test suites</p>
+                            <i class="fas fa-list-check fa-3x text-success mb-3"></i>
+                            <h4>Functional Testing</h4>
+                            <p class="layer-q">Does it follow the rules?</p>
+                            <p>
+                                Authentication, validation, filtering and access control.
+                                Roughly half of these assert that something is correctly
+                                <em>refused</em> &mdash; a suite that only proves the happy
+                                path proves very little.
+                            </p>
+                            <span class="layer-count">39 tests</span>
                         </div>
                     </div>
                 </div>
+
                 <div class="col-md-4 mb-4">
                     <div class="card h-100 text-center">
                         <div class="card-body">
-                            <i class="fas fa-search fa-3x text-success mb-3"></i>
-                            <h4>Bug Analysis</h4>
-                            <p>Deep investigation of software issues</p>
+                            <i class="fas fa-database fa-3x text-success mb-3"></i>
+                            <h4>Integration Testing</h4>
+                            <p class="layer-q">Does it reach the database?</p>
+                            <p>
+                                Assertions run against MySQL rows, not screen text. A page can
+                                say &ldquo;saved&rdquo; whether or not anything was written &mdash;
+                                only the row proves it.
+                            </p>
+                            <span class="layer-count">9 tests</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <i class="fas fa-route fa-3x text-success mb-3"></i>
+                            <h4>End-to-End Testing</h4>
+                            <p class="layer-q">Do the journeys work?</p>
+                            <p>
+                                Complete flows across multiple roles &mdash; a student books,
+                                a landlord approves, a deposit moves through escrow. Individual
+                                features can each work while the path between them breaks.
+                            </p>
+                            <span class="layer-count">5 tests</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <i class="fas fa-rotate-left fa-3x text-success mb-3"></i>
+                            <h4>Regression Testing</h4>
+                            <p class="layer-q">Has anything broken?</p>
+                            <p>
+                                A smoke pack plus one guard per fixed defect, so a later change
+                                cannot silently undo an earlier fix. The whole suite runs in 46
+                                seconds, which is what makes it worth running often.
+                            </p>
+                            <span class="layer-count">24 tests</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <i class="fas fa-shield-halved fa-3x text-success mb-3"></i>
+                            <h4>Security Testing</h4>
+                            <p class="layer-q">Do the controls hold?</p>
+                            <p>
+                                Injection, access control, CSRF, session handling and file
+                                uploads, mapped to the OWASP Top 10. This layer found the most
+                                serious defect in the project.
+                            </p>
+                            <span class="layer-count">16 tests</span>
                         </div>
                     </div>
                 </div>
@@ -256,42 +332,32 @@
     </section>
 
     <!-- Footer -->
-<footer class="bg-dark text-white py-4 mt-5">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-4 mb-3">
-                <h5 class="text-white"><i class="fas fa-bug"></i> BeyondTheBugs</h5>
-                <p class="text-light">Quality Assurance & Software Testing Portfolio</p>
-            </div>
-            <div class="col-md-4 mb-3">
-                <h5 class="text-white">Quick Links</h5>
-                <a href="index.html" class="d-block text-light mb-2">Home</a>
-                <a href="bio.html" class="d-block text-light mb-2">Bio</a>
-                <a href="cv.html" class="d-block text-light mb-2">CV</a>
-                <a href="projects.html" class="d-block text-light mb-2">Projects</a>
-            </div>
-            <div class="col-md-4 mb-3">
-                <h5 class="text-white">Connect</h5>
-                <a href="https://www.linkedin.com/in/novithan-naidoo-04743959/" class="text-light me-3"><i class="fab fa-linkedin fa-2x"></i></a>
-                <a href="https://github.com/" class="text-light me-3"><i class="fab fa-github fa-2x"></i></a>
-                <a href="https://x.com/home" class="text-light"><i class="fab fa-twitter fa-2x"></i></a>
-            </div>
-        </div>
-        <hr class="bg-light">
-    </div>
-<footer class="bg-dark text-white py-4 mt-5">
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12 text-center">
-                <p class="mb-0">&copy; <span id="year"></span> BeyondTheBugs | Novithan Naidoo</p>
-            </div>
-        </div>
-    </div>
-</footer>
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-inner">
+                <span class="footer-copy">
+                    &copy; <span id="year"></span> Novithan Naidoo
+                    <span class="footer-sep">·</span>
+                    <span class="footer-role">QA &amp; Test Automation</span>
+                </span>
 
-<script>
-    document.getElementById('year').textContent = new Date().getFullYear();
-</script>
+                <div class="footer-social">
+                    <a href="https://www.linkedin.com/in/novithan-naidoo-04743959/"
+                       target="_blank" rel="noopener" aria-label="LinkedIn">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                    <a href="https://github.com/NovithanNaidoo"
+                       target="_blank" rel="noopener" aria-label="GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
