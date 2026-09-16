@@ -334,6 +334,136 @@ footer .d-block {
 @keyframes caretBlink { 50% { opacity: 0; } }
 
 /* ═══════════════════════════════════════════════════════════════════
+   TERMINAL PAGE HEADINGS
+   Interior page titles rendered as a shell command rather than a
+   sentence — monospace, a prompt, and a blinking caret.
+   ═══════════════════════════════════════════════════════════════════ */
+.term-title {
+    font-family: 'Courier New', Consolas, monospace;
+    font-size: 1.75rem;
+    font-weight: 900;
+    line-height: 1.5;
+    text-align: center;
+    word-break: break-word;
+    letter-spacing: -0.01em;
+}
+
+/* The glow is what sells "neon" — a flat bright green just looks flat. */
+.term-prompt,
+.term-cmd,
+.term-arg {
+    text-shadow: 0 0 6px rgba(57, 255, 20, 0.7),
+                 0 0 18px rgba(57, 255, 20, 0.45);
+}
+
+/* user@host:path — same neon, slightly stepped back so the command leads */
+.term-prompt {
+    color: #4dff2f;
+    margin-right: 10px;
+    opacity: 0.88;
+}
+
+.term-cmd { color: #39ff14; }
+
+/* Arguments stay neon but a shade cooler, so the command still reads first */
+.term-arg { color: #8fffa8; }
+
+.term-caret {
+    display: inline-block;
+    width: 12px;
+    height: 1.05em;
+    background: #39ff14;
+    vertical-align: -0.16em;
+    margin-left: 6px;
+    box-shadow: 0 0 10px rgba(57, 255, 20, 0.85);
+    animation: termBlink 1.05s step-end infinite;
+}
+@keyframes termBlink { 50% { opacity: 0; } }
+
+/* The line underneath, as shell output — kept quiet so it does not
+   compete with the command above it. */
+.term-output {
+    font-family: 'Courier New', Consolas, monospace;
+    color: #9aa7b4;
+    font-size: 0.94rem;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .term-title { font-size: 1.15rem; }
+    .term-prompt { display: block; margin-right: 0; font-size: 0.9rem; }
+    .term-output { font-size: 0.84rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FOOTER
+   A single line: copyright and role on the left, social on the right.
+   ═══════════════════════════════════════════════════════════════════ */
+.site-footer {
+    background: #0d1117;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 14px 0;
+    margin-top: 3.5rem;
+}
+
+.footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+}
+
+.footer-copy {
+    color: #6e7b88;
+    font-size: 0.8rem;
+}
+
+.footer-sep { color: #39434d; margin: 0 6px; }
+
+.footer-role { color: #7fff6a; }
+
+.footer-social { display: flex; gap: 14px; }
+.footer-social a {
+    color: #6e7b88;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.footer-social a:hover { color: #7fff6a; }
+
+@media (max-width: 768px) {
+    .site-footer { padding: 16px 0; }
+    .footer-inner { flex-direction: column; text-align: center; gap: 10px; }
+    .footer-copy { font-size: 0.76rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TEST LAYER CARDS  ("My Learning Journey")
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* The question each layer answers — set apart from the description. */
+.layer-q {
+    font-weight: 700;
+    color: #28a745;
+    font-size: 0.93rem;
+    margin-bottom: 10px;
+}
+
+.layer-count {
+    display: inline-block;
+    margin-top: 6px;
+    background: #e8f8ec;
+    color: #1a7f37;
+    border: 1px solid #bbf7d0;
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    DEFECT CARDS
    ═══════════════════════════════════════════════════════════════════ */
 .defect-card {
@@ -554,19 +684,112 @@ h1.text-center.mb-5 {
     color: #fff;
 }
 
-/* === GREEN GLOW EFFECT FOR NAVBAR LOGO === */
+/* === NAVBAR LOGO — terminal wordmark with green glow === */
 .navbar-brand {
+    font-family: 'Courier New', Consolas, monospace;
+    font-weight: 900;
+    letter-spacing: -0.02em;
     text-shadow: 0 0 10px #28a745, 0 0 20px #28a745, 0 0 30px #28a745;
     animation: logoGlow 2s ease-in-out infinite;
     transition: all 0.3s;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+}
+
+/* Shell prompt characters framing the name, so it reads as a command
+   line rather than a word. Dimmer than the name itself — punctuation
+   should not compete with the brand. */
+.brand-prompt {
+    color: #4dff2f;
+    opacity: 0.7;
+    font-weight: 700;
+}
+
+.brand-name { color: inherit; }
+
+/* Blinking cursor after the name */
+.brand-caret {
+    display: inline-block;
+    width: 9px;
+    height: 0.95em;
+    background: #39ff14;
+    box-shadow: 0 0 8px rgba(57, 255, 20, 0.8);
+    animation: termBlink 1.05s step-end infinite;
+    align-self: center;
 }
 
 .navbar-brand:hover {
     text-shadow: 0 0 15px #39ff14, 0 0 30px #39ff14, 0 0 45px #39ff14;
 }
 
+.navbar-brand:hover .brand-prompt { opacity: 1; }
+
+@media (max-width: 480px) {
+    .navbar-brand { font-size: 1rem; gap: 5px; }
+}
+
 .navbar-brand i {
     text-shadow: 0 0 10px #28a745, 0 0 20px #28a745, 0 0 30px #28a745;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FLYING LOGO
+   The bug takes off on hover: it lifts, banks left and right, loops
+   back and settles. Two animations are layered — a slow flight path on
+   the wrapper, and a fast wobble on the icon itself, which reads as
+   wingbeats. Doing both on one element is not possible, because a
+   single element takes one transform at a time.
+   ═══════════════════════════════════════════════════════════════════ */
+.logo-bug {
+    display: inline-block;
+    transform-origin: center;
+    will-change: transform;
+}
+
+.logo-bug i {
+    display: inline-block;
+    transform-origin: center;
+}
+
+/* Flight path — an irregular loop, since a symmetrical one reads
+   mechanical rather than alive. */
+@keyframes bugFlight {
+      0% { transform: translate(0, 0)        rotate(0deg); }
+     14% { transform: translate(6px, -13px)  rotate(-16deg); }
+     28% { transform: translate(18px, -7px)  rotate(11deg); }
+     42% { transform: translate(11px, -20px) rotate(-8deg); }
+     56% { transform: translate(-6px, -15px) rotate(15deg); }
+     70% { transform: translate(-13px, -4px) rotate(-12deg); }
+     84% { transform: translate(-4px, -9px)  rotate(7deg); }
+    100% { transform: translate(0, 0)        rotate(0deg); }
+}
+
+/* Wingbeat — fast and small. Squashing horizontally suggests wings
+   sweeping through, without needing a second graphic. */
+@keyframes bugFlutter {
+      0% { transform: scale(1, 1)       rotate(0deg); }
+     50% { transform: scale(0.86, 1.08) rotate(3deg); }
+    100% { transform: scale(1, 1)       rotate(0deg); }
+}
+
+.navbar-brand:hover .logo-bug {
+    animation: bugFlight 2.1s ease-in-out infinite;
+}
+
+.navbar-brand:hover .logo-bug i {
+    animation: bugFlutter 0.11s linear infinite;
+    color: #39ff14;
+    text-shadow: 0 0 12px #39ff14, 0 0 26px #39ff14;
+}
+
+/* A bug flying around the corner of the screen is exactly the kind of
+   motion that makes some people ill. */
+@media (prefers-reduced-motion: reduce) {
+    .navbar-brand:hover .logo-bug,
+    .navbar-brand:hover .logo-bug i {
+        animation: none;
+    }
 }
 
 @keyframes logoGlow {
