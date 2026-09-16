@@ -11,6 +11,24 @@
             box-sizing: border-box;
         }
 
+        /* ── Copy protection ──────────────────────────────────────────
+           Disables text selection, right-click and dragging across the
+           CV. This deters casual copying; it is not real protection —
+           see the note at the foot of this file. */
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;   /* stops iOS copy/define popup */
+        }
+
+        /* Suppress the highlight colour if a selection slips through */
+        ::selection      { background: transparent; }
+        ::-moz-selection { background: transparent; }
+
+        img { -webkit-user-drag: none; user-drag: none; pointer-events: none; }
+
         body {
             font-family: 'Times New Roman', Times, serif;
             line-height: 1.6;
@@ -620,5 +638,36 @@
             </main>
         </div>
     </div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   COPY DETERRENT
+
+   Blocks right-click, copy, cut, and drag on this page.
+
+   Worth being clear about what this does and does not do: it stops
+   casual copying — someone highlighting the text and pressing Ctrl+C.
+   It cannot stop anyone determined, because the text still has to reach
+   the browser to be displayed. View Source, developer tools, printing to
+   PDF, or simply reading it will all get around this.
+
+   Treat it as a "please don't", not as security.
+   ═══════════════════════════════════════════════════════════════════ */
+(function copyDeterrent() {
+    'use strict';
+
+    ['contextmenu', 'copy', 'cut', 'dragstart', 'selectstart'].forEach(evt => {
+        document.addEventListener(evt, e => e.preventDefault());
+    });
+
+    // Ctrl/Cmd + C, X, A, S, U and P
+    document.addEventListener('keydown', e => {
+        const key = e.key.toLowerCase();
+        if ((e.ctrlKey || e.metaKey) && ['c', 'x', 'a', 's', 'u', 'p'].includes(key)) {
+            e.preventDefault();
+        }
+    });
+})();
+</script>
 </body>
 </html>
