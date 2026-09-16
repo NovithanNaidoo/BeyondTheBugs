@@ -42,7 +42,7 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="index.html"><i class="fas fa-bug"></i> BeyondTheBugs</a>
+            <a class="navbar-brand" href="index.html"><span class="logo-bug"><i class="fas fa-bug"></i></span><span class="brand-prompt">~/</span><span class="brand-name">BeyondTheBugs</span><span class="brand-caret"></span></a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -58,7 +58,10 @@
     </nav>
 
     <div class="container mt-5 pt-5">
-    <h1 class="text-center mb-5">My Projects</h1>
+    <h1 class="term-title mb-2">
+        <span class="term-prompt">novithan@beyondthebugs:~$</span><span class="term-cmd">ls</span> <span class="term-arg">-la ./projects</span><span class="term-caret"></span>
+    </h1>
+    <p class="term-output mb-5">Everything I have built, tested and broken on purpose.</p>
 
     <div class="row">
 
@@ -198,15 +201,32 @@
     </div>
 </div>
 
-    <footer class="bg-dark text-white py-4 mt-5">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-12 text-center">
-                    <p class="mb-0">&copy; <span id="year"></span> BeyondTheBugs | Novithan Naidoo</p>
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-inner">
+                <span class="footer-copy">
+                    &copy; <span id="year"></span> Novithan Naidoo
+                    <span class="footer-sep">·</span>
+                    <span class="footer-role">QA &amp; Test Automation</span>
+                </span>
+
+                <div class="footer-social">
+                    <a href="https://www.linkedin.com/in/novithan-naidoo-04743959/"
+                       target="_blank" rel="noopener" aria-label="LinkedIn">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                    <a href="https://github.com/NovithanNaidoo"
+                       target="_blank" rel="noopener" aria-label="GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
                 </div>
             </div>
         </div>
     </footer>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="matrix.js"></script>
