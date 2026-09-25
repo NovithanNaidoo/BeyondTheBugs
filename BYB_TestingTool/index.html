@@ -347,6 +347,40 @@
     padding: 18px 8px; border: 1.5px dashed var(--border); border-radius: 8px;
   }
 
+  /* ── TEST RUN EXECUTION ────────────────────────────────────────────
+     One case at a time, with its steps and expected result in front of
+     you — the point being that you judge against the specification
+     rather than from memory. */
+  .exec-body { padding: 18px 20px 20px; }
+
+  .exec-bar { height: 6px; background: var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 16px; }
+  .exec-bar-fill { height: 100%; background: var(--green); width: 0; transition: width 0.3s ease; }
+
+  .exec-case { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .exec-case h3 { font-size: 15px; margin-bottom: 4px; }
+  .exec-cid { font-family: 'Courier New', monospace; font-size: 11px; color: var(--text-light); }
+  .exec-meta { display: flex; gap: 6px; flex-wrap: wrap; margin: 9px 0 13px; }
+  .exec-sec { margin-top: 13px; }
+  .exec-sec-t {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.07em; color: var(--text-mid); margin-bottom: 5px;
+  }
+  .exec-sec p, .exec-sec ol { font-size: 13px; color: var(--text); line-height: 1.7; margin: 0; }
+  .exec-sec ol { padding-left: 20px; }
+  /* Expected result is highlighted because it is the thing being judged */
+  .exec-expected {
+    background: var(--green-bg); border-left: 3px solid var(--green);
+    padding: 10px 13px; border-radius: 0 7px 7px 0; font-size: 13px; line-height: 1.7;
+  }
+  .exec-actions { display: flex; gap: 9px; margin-top: 16px; flex-wrap: wrap; }
+  .exec-actions .btn { flex: 1; min-width: 110px; justify-content: center; }
+
+  .run-result { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px; }
+  .rr-passed  { background: #dcfce7; color: #15803d; }
+  .rr-failed  { background: #fee2e2; color: #dc2626; }
+  .rr-blocked { background: #fef9c3; color: #a16207; }
+  .rr-skipped { background: var(--border); color: var(--text-mid); }
+
   /* Board toolbar */
   .k-toolbar {
     padding: 12px 20px 0; display: flex; gap: 9px; align-items: center; flex-wrap: wrap;
@@ -397,17 +431,6 @@
   .ft { resize: vertical; min-height: 80px; }
   .fr { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .mf { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
-
-  /* ── AI BOX ── */
-  .ai-box { background: var(--green-bg); border: 1px solid var(--green-border); border-radius: 10px; padding: 14px; margin-top: 14px; }
-  .ai-box-hd { font-size: 11px; font-weight: 700; color: var(--green); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-  .ai-out {
-    background: white; border: 1px solid var(--green-border); border-radius: 8px;
-    padding: 14px; font-size: 12px; color: var(--text-mid); line-height: 1.8;
-    min-height: 100px; white-space: pre-wrap; max-height: 280px; overflow-y: auto;
-  }
-  .ai-think { color: var(--green); }
-  .ai-acts { display: flex; gap: 8px; margin-top: 10px; }
 
   /* TOAST */
   .toast-wrap { position: fixed; bottom: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 7px; }
@@ -568,9 +591,6 @@
       <div class="nav-item" onclick="goTo('guide',this)">
         <i class="fas fa-question-circle"></i> Guide
       </div>
-      <div class="nav-item" onclick="openAI()">
-        <i class="fas fa-magic"></i> Generate
-      </div>
       <div class="nav-item" onclick="openTrash()">
         <i class="fas fa-trash"></i> Trash
       </div>
@@ -611,8 +631,8 @@
         <i class="fas fa-search" style="color:var(--text-light);font-size:11px"></i>
         <input type="text" placeholder="Search test cases..." id="globalSearch" oninput="filterCases()">
       </div>
-      <button class="btn btn-green" onclick="openAI()">
-        <i class="fas fa-magic"></i> Generate with AI
+      <button class="btn btn-green" onclick="openCaseModal()">
+        <i class="fas fa-plus"></i> New Test Case
       </button>
     </div>
   </div>
@@ -624,9 +644,9 @@
     <div class="page active" id="page-dashboard">
       <div class="hero">
         <h1>BeyondTheBugs</h1>
-        <p>Write &amp; generate test cases for automated testing. Describe what you want in plain English and let AI craft structured test cases instantly.</p>
+        <p>Write, organise and execute test cases across UI, functional, integration, end-to-end, regression and security layers. Track runs, record results and raise defects linked back to the case that found them.</p>
         <div class="hero-btns">
-          <button class="btn btn-green" onclick="openAI()"><i class="fas fa-magic"></i> Generate with AI</button>
+          <button class="btn btn-green" onclick="openCaseModal()"><i class="fas fa-plus"></i> New Test Case</button>
           <button class="btn btn-outline" onclick="goTo('testcases',document.getElementById('nav-testcases'))">View All Test Cases →</button>
         </div>
       </div>
@@ -663,7 +683,6 @@
             <div class="section-sub" id="caseCount">0 test cases</div>
           </div>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-outline" onclick="openAI()"><i class="fas fa-magic"></i> Generate with AI</button>
             <button class="btn btn-green" onclick="openCaseModal()"><i class="fas fa-plus"></i> New Test Case</button>
           </div>
         </div>
@@ -704,13 +723,51 @@
       <div class="section">
         <div class="section-hd">
           <div><div class="section-title">Test Runs</div><div class="section-sub">Execute and track test runs</div></div>
-          <button class="btn btn-green" onclick="openModal('runModal')"><i class="fas fa-plus"></i> New Test Run</button>
+          <button class="btn btn-green" onclick="openRunModal()"><i class="fas fa-plus"></i> New Test Run</button>
         </div>
         <div class="empty" id="runsEmpty" style="display:none">
-          <i class="fas fa-play"></i><h3>Test Runs</h3><p>Coming soon — execute and track test runs here.</p>
+          <i class="fas fa-play"></i><h3>No test runs yet</h3>
+          <p>A test run is one dated execution of a set of cases against one build.<br>
+             Results belong to the run, so re-running keeps a history instead of overwriting it.</p>
         </div>
-        <table id="runsTable"><thead><tr><th>Name</th><th>Project</th><th>Status</th><th>Cases</th><th>Passed</th><th>Failed</th><th></th></tr></thead>
+        <table id="runsTable"><thead><tr><th>Name</th><th>Project</th><th>Status</th><th>Cases</th><th>Passed</th><th>Failed</th><th>Blocked</th><th></th></tr></thead>
         <tbody id="runsBody"></tbody></table>
+      </div>
+
+      <!-- EXECUTION VIEW — shown while stepping through a run -->
+      <div class="section" id="execPanel" style="display:none">
+        <div class="section-hd">
+          <div>
+            <div class="section-title" id="execTitle">Executing</div>
+            <div class="section-sub" id="execProgress"></div>
+          </div>
+          <button class="btn btn-outline" onclick="closeExec()"><i class="fas fa-times"></i> Close</button>
+        </div>
+
+        <div class="exec-body">
+          <div class="exec-bar"><div class="exec-bar-fill" id="execBarFill"></div></div>
+
+          <div class="exec-case" id="execCase"></div>
+
+          <div class="fg" style="margin-top:14px">
+            <label class="fl">Notes (what you observed)</label>
+            <textarea class="ft" id="execNote" rows="3"
+              placeholder="Only needed when something differs from the expected result."></textarea>
+          </div>
+
+          <div class="exec-actions">
+            <button class="btn" style="background:var(--green);color:#fff" onclick="execMark('passed')">
+              <i class="fas fa-check"></i> Pass
+            </button>
+            <button class="btn" style="background:var(--red);color:#fff" onclick="execMark('failed')">
+              <i class="fas fa-times"></i> Fail
+            </button>
+            <button class="btn btn-outline" onclick="execMark('blocked')">
+              <i class="fas fa-ban"></i> Blocked
+            </button>
+            <button class="btn btn-ghost" onclick="execMark('skipped')">Skip</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -724,7 +781,7 @@
         <div class="empty" id="defectsEmpty" style="display:none">
           <i class="fas fa-bug"></i><h3>Defects</h3><p>No defects logged yet.</p>
         </div>
-        <table id="defectsTable"><thead><tr><th>ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Project</th><th></th></tr></thead>
+        <table id="defectsTable"><thead><tr><th>ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Project</th><th>Found by</th><th></th></tr></thead>
         <tbody id="defectsBody"></tbody></table>
       </div>
     </div>
@@ -780,7 +837,7 @@
 
             <div style="display:flex;gap:12px;align-items:flex-start">
               <div style="width:24px;height:24px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0">2</div>
-              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Add <strong>Test Cases</strong> manually or use AI to generate them instantly</p>
+              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Add <strong>Test Cases</strong> with preconditions, steps and an expected result &mdash; or duplicate an existing one as a starting point</p>
             </div>
 
             <div style="display:flex;gap:12px;align-items:flex-start">
@@ -795,7 +852,7 @@
 
             <div style="display:flex;gap:12px;align-items:flex-start">
               <div style="width:24px;height:24px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0">5</div>
-              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Use <strong>Generate with AI</strong> to describe what to test in plain English</p>
+              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Create a <strong>Test Run</strong> to execute cases one at a time and record pass, fail or blocked against a specific build</p>
             </div>
 
           </div>
@@ -815,50 +872,6 @@
 </main>
 
 <!-- ── MODALS ── -->
-
-<!-- AI MODAL -->
-<div class="overlay" id="aiModal" onclick="closeOut('aiModal',event)">
-  <div class="modal modal-lg">
-    <div class="modal-hd">
-      <h2><i class="fas fa-magic" style="color:var(--green)"></i> Generate with AI</h2>
-      <button class="modal-x" onclick="closeModal('aiModal')">✕</button>
-    </div>
-    <div class="fg"><label class="fl">Describe what you want to test</label>
-      <textarea class="ft" id="aiPrompt" style="min-height:90px" placeholder="e.g. Test the login page — check valid credentials, wrong password, empty fields, and lockout after 3 failed attempts"></textarea>
-    </div>
-    <div class="fr">
-      <div class="fg"><label class="fl">Test Type</label>
-        <select class="fs" id="aiType">
-          <option value="functional">Functional</option>
-          <option value="ui">UI</option>
-          <option value="end-to-end">End-to-End</option>
-          <option value="regression">Regression</option>
-          <option value="integration">Integration</option>
-          <option value="security">Security</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">Priority</label>
-        <select class="fs" id="aiPri">
-          <option value="high">High</option>
-          <option value="medium" selected>Medium</option>
-          <option value="low">Low</option>
-        </select>
-      </div>
-    </div>
-    <button class="btn btn-green" style="width:100%;padding:11px;justify-content:center" onclick="runAI()">
-      <i class="fas fa-magic"></i> Generate Test Cases
-    </button>
-    <div class="ai-box" id="aiBox" style="display:none">
-      <div class="ai-box-hd"><i class="fas fa-magic"></i> AI Generated Output</div>
-      <div class="ai-out" id="aiOut"></div>
-      <div class="ai-acts" id="aiActs" style="display:none">
-        <button class="btn btn-green" onclick="saveAI()"><i class="fas fa-save"></i> Save to Test Cases</button>
-        <button class="btn btn-outline" onclick="copyAI()"><i class="fas fa-copy"></i> Copy</button>
-        <button class="btn btn-ghost" onclick="clearAI()">Clear</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- PROJECT MODAL -->
 <div class="overlay" id="projectModal" onclick="closeOut('projectModal',event)">
@@ -933,19 +946,47 @@
 <div class="overlay" id="runModal" onclick="closeOut('runModal',event)">
   <div class="modal modal-sm">
     <div class="modal-hd"><h2>New Test Run</h2><button class="modal-x" onclick="closeModal('runModal')">✕</button></div>
-    <div class="fg"><label class="fl">Run Name *</label><input class="fi" id="rName" placeholder="e.g. Sprint 3 Regression"></div>
+    <div class="fg"><label class="fl">Run Name *</label><input class="fi" id="rName" placeholder="e.g. TR-001 — Full suite"></div>
     <div class="fg"><label class="fl">Project</label><select class="fs" id="rProj"></select></div>
-    <div class="fg"><label class="fl">Status</label>
-      <select class="fs" id="rStat">
-        <option value="pending">Pending</option>
-        <option value="running">Running</option>
-        <option value="passed">Passed</option>
-        <option value="failed">Failed</option>
+
+    <!-- A run is defined by which cases it covers. Recording the build and
+         environment is what makes a result reproducible later. -->
+    <div class="fr">
+      <div class="fg"><label class="fl">Build under test</label>
+        <input class="fi" id="rBuild" placeholder="e.g. v1.2 / local XAMPP"></div>
+      <div class="fg"><label class="fl">Environment</label>
+        <input class="fi" id="rEnv" placeholder="e.g. Windows 11 · Chromium"></div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">Cases to include</label>
+      <select class="fs" id="rScope" onchange="renderRunScope()">
+        <option value="all">All cases</option>
+        <option value="approved">Approved only</option>
+        <option value="failed">Previously failed only</option>
+        <option value="layer">By layer…</option>
       </select>
     </div>
+
+    <div class="fg" id="rLayerWrap" style="display:none">
+      <label class="fl">Layer</label>
+      <select class="fs" id="rLayer" onchange="renderRunScope()">
+        <option value="ui">UI</option>
+        <option value="functional">Functional</option>
+        <option value="integration">Integration</option>
+        <option value="end-to-end (e2e)">End-to-End</option>
+        <option value="regression">Regression</option>
+        <option value="security">Security</option>
+      </select>
+    </div>
+
+    <div class="fg">
+      <div style="font-size:12px;color:var(--text-mid)" id="rScopeCount">All cases will be included.</div>
+    </div>
+
     <div class="mf">
       <button class="btn btn-outline" onclick="closeModal('runModal')">Cancel</button>
-      <button class="btn btn-green" onclick="saveRun()">Create Run</button>
+      <button class="btn btn-green" onclick="saveRun()">Create &amp; Start Run</button>
     </div>
   </div>
 </div>
@@ -973,6 +1014,17 @@
       </div>
     </div>
     <div class="fg"><label class="fl">Project</label><select class="fs" id="dProj"></select></div>
+
+    <!-- Traceability: which test case exposed this defect. Without this
+         link a defect register is just a list; with it you can answer
+         "what found this?" and "what does this case protect?" -->
+    <div class="fg">
+      <label class="fl">Found by test case</label>
+      <select class="fs" id="dCase">
+        <option value="">Not linked to a case</option>
+      </select>
+    </div>
+
     <div class="fg"><label class="fl">Description</label><textarea class="ft" id="dDesc" placeholder="Steps to reproduce..."></textarea></div>
     <div class="mf">
       <button class="btn btn-outline" onclick="closeModal('defectModal')">Cancel</button>
@@ -1092,7 +1144,7 @@ let store = JSON.parse(localStorage.getItem('btstore2')||'null')||{
   trash:[],
   nextId:{project:3,case:7,run:1,defect:1}
 };
-let editCase=null, editDefect=null, aiResult='', dragId=null;
+let editCase=null, editDefect=null, dragId=null;
 
 // ── CLOUD SYNC (Supabase) ─────────────────────────────────────────────
 //
@@ -1259,7 +1311,7 @@ function renderDash(){
   const failed=store.cases.filter(c=>c.status==='failed').length;
   const drafts=store.cases.filter(c=>c.status==='draft').length;
   const critical=store.cases.filter(c=>c.priority==='critical').length;
-  const aiGen=store.cases.filter(c=>c.ai).length;
+  const blocked=store.cases.filter(c=>c.status==='blocked').length;
   document.getElementById('statsGrid').innerHTML=[
     ['Total Cases',total,'fa-flask','#dcfce7','#15803d'],
     ['Approved',approved,'fa-check-circle','#dcfce7','#15803d'],
@@ -1268,7 +1320,7 @@ function renderDash(){
     ['Failed',failed,'fa-times-circle','#fee2e2','#dc2626'],
     ['Drafts',drafts,'fa-clock','#fef9c3','#a16207'],
     ['Critical',critical,'fa-exclamation-triangle','#fee2e2','#dc2626'],
-    ['AI Generated',aiGen,'fa-magic','#f3e8ff','#7c3aed'],
+    ['Blocked',blocked,'fa-ban','#fef9c3','#a16207'],
   ].map(([l,v,ic,bg,col])=>`
     <div class="stat-card">
       <div><div class="stat-label">${l}</div><div class="stat-val">${v}</div></div>
@@ -1332,15 +1384,16 @@ function renderCases(){
   document.getElementById('caseCount').textContent=`${cases.length} test case${cases.length!==1?'s':''}`;
   document.getElementById('casesGrid').innerHTML=cases.length
     ? cases.map(c=>caseCardHTML(c)).join('')
-    : `<div style="grid-column:1/-1"><div class="empty"><i class="fas fa-flask"></i><h3>No test cases</h3><p>Create your first test case or generate with AI.</p></div></div>`;
+    : `<div style="grid-column:1/-1"><div class="empty"><i class="fas fa-flask"></i><h3>No test cases</h3><p>Create your first test case to get started.</p></div></div>`;
 }
 
 function caseCardHTML(c){
   return `
     <div class="case-card" onclick="openCaseModal(${c.id})">
       <div class="case-card-actions">
-        <button class="card-act-btn" onclick="event.stopPropagation();openCaseModal(${c.id})"><i class="fas fa-edit"></i></button>
-        <button class="card-act-btn del" onclick="event.stopPropagation();delCase(${c.id})"><i class="fas fa-trash"></i></button>
+        <button class="card-act-btn" title="Edit" onclick="event.stopPropagation();openCaseModal(${c.id})"><i class="fas fa-edit"></i></button>
+        <button class="card-act-btn" title="Duplicate" onclick="event.stopPropagation();cloneCase(${c.id})"><i class="fas fa-copy"></i></button>
+        <button class="card-act-btn del" title="Move to trash" onclick="event.stopPropagation();delCase(${c.id})"><i class="fas fa-trash"></i></button>
       </div>
       <div class="case-card-title">${esc(c.title)}</div>
       ${c.desc?`<div class="case-card-desc">${esc(c.desc.slice(0,80))}${c.desc.length>80?'…':''}</div>`:''}
@@ -1348,7 +1401,6 @@ function caseCardHTML(c){
         ${priBadge(c.priority)}
         ${statBadge(c.status)}
         ${c.cat?`<span class="badge b-func">${c.cat}</span>`:''}
-        ${c.ai?`<span class="badge" style="background:#f3e8ff;color:#7c3aed"><i class="fas fa-magic" style="font-size:9px"></i> AI</span>`:''}
       </div>
       <div class="case-card-footer">
         <span>${(c.steps||'').split('\n').filter(Boolean).length} step${(c.steps||'').split('\n').filter(Boolean).length!==1?'s':''}</span>
@@ -1454,29 +1506,261 @@ function delCase(id){
   saveStore();renderCases();renderDash();renderBoards();toast('Moved to trash','#f97316');
 }
 
-// ── TEST RUNS ──
+// Duplicate a case as a starting point. Related cases usually share
+// preconditions and most of their steps, so cloning and editing is far
+// quicker than writing each one from scratch.
+//
+// The copy deliberately resets status and board position: a duplicate has
+// not been reviewed, and it certainly has not been executed, so inheriting
+// "approved" or a previous pass/fail would be a lie.
+function cloneCase(id){
+  const c=store.cases.find(x=>x.id===id);
+  if(!c)return;
+
+  const copy={
+    ...c,
+    id:store.nextId.case++,
+    jsonId:(c.jsonId||'')+'-COPY',
+    title:c.title+' (copy)',
+    status:'draft',
+    boardCol:'draft',
+    ai:false,
+    date:new Date().toISOString().split('T')[0]
+  };
+
+  store.cases.push(copy);
+  saveStore();
+  renderCases();renderDash();renderBoards();
+  toast('Case cloned — edit the copy','#16a34a');
+  openCaseModal(copy.id);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// TEST RUNS
+//
+// A run holds a snapshot of which cases were executed and what each one
+// did. Results live on the run rather than on the case, so running the
+// same suite twice produces two records instead of overwriting one — the
+// whole point of having runs at all.
+// ══════════════════════════════════════════════════════════════════════
+
 function renderRuns(){
   fillProjSel('rProj');
   const empty=store.runs.length===0;
   document.getElementById('runsEmpty').style.display=empty?'flex':'none';
   document.getElementById('runsTable').style.display=empty?'none':'table';
-  document.getElementById('runsBody').innerHTML=store.runs.map(r=>`
+  document.getElementById('runsBody').innerHTML=store.runs.map(r=>{
+    const res=r.results||{};
+    const vals=Object.values(res);
+    const passed=vals.filter(v=>v.result==='passed').length;
+    const failed=vals.filter(v=>v.result==='failed').length;
+    const blocked=vals.filter(v=>v.result==='blocked').length;
+    const done=vals.filter(v=>v.result&&v.result!=='pending').length;
+    const total=(r.caseIds||[]).length;
+
+    return `
     <tr>
-      <td><strong>${esc(r.name)}</strong></td>
+      <td>
+        <strong>${esc(r.name)}</strong>
+        <div style="font-size:11px;color:var(--text-light)">
+          ${esc(r.date||'')}${r.build?' · '+esc(r.build):''}
+        </div>
+      </td>
       <td>${projName(r.project)}</td>
       <td>${runStatBadge(r.status)}</td>
-      <td>${r.cases}</td>
-      <td style="color:#16a34a;font-weight:600">${r.passed}</td>
-      <td style="color:#dc2626;font-weight:600">${r.failed}</td>
-      <td><button class="btn btn-ghost" style="color:var(--red)" onclick="delRun(${r.id})"><i class="fas fa-trash"></i></button></td>
-    </tr>`).join('');
+      <td>${done} / ${total}</td>
+      <td style="color:#16a34a;font-weight:600">${passed}</td>
+      <td style="color:#dc2626;font-weight:600">${failed}</td>
+      <td style="color:#a16207;font-weight:600">${blocked}</td>
+      <td style="display:flex;gap:4px">
+        <button class="btn btn-ghost" style="font-size:11px" title="Execute"
+          onclick="startExec(${r.id})"><i class="fas fa-play"></i></button>
+        <button class="btn btn-ghost" style="color:var(--red);font-size:11px"
+          onclick="delRun(${r.id})"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>`;}).join('');
 }
+
+function openRunModal(){
+  fillProjSel('rProj');
+  document.getElementById('rName').value =
+    'TR-'+String(store.runs.length+1).padStart(3,'0')+' — '+
+    new Date().toLocaleDateString('en-ZA');
+  document.getElementById('rBuild').value='';
+  document.getElementById('rEnv').value='';
+  document.getElementById('rScope').value='all';
+  renderRunScope();
+  openModal('runModal');
+}
+
+// Which cases the chosen scope would include.
+function scopedCases(){
+  const scope=document.getElementById('rScope')?.value||'all';
+  if(scope==='approved') return store.cases.filter(c=>c.status==='approved');
+  if(scope==='failed')   return store.cases.filter(c=>c.status==='failed');
+  if(scope==='layer'){
+    const l=document.getElementById('rLayer').value;
+    return store.cases.filter(c=>c.cat===l);
+  }
+  return store.cases;
+}
+
+function renderRunScope(){
+  const scope=document.getElementById('rScope').value;
+  document.getElementById('rLayerWrap').style.display=scope==='layer'?'block':'none';
+  const n=scopedCases().length;
+  document.getElementById('rScopeCount').textContent=
+    n===0 ? 'No cases match — the run would be empty.'
+          : `${n} case${n===1?'':'s'} will be included.`;
+}
+
 function saveRun(){
-  const name=document.getElementById('rName').value.trim();if(!name)return;
-  store.runs.push({id:store.nextId.run++,name,project:parseInt(document.getElementById('rProj').value)||1,status:document.getElementById('rStat').value,cases:0,passed:0,failed:0});
-  saveStore();closeModal('runModal');renderRuns();toast('Test run created ✓','#16a34a');
+  const name=document.getElementById('rName').value.trim();
+  if(!name){toast('Give the run a name','#ef4444');return;}
+
+  const cases=scopedCases();
+  if(cases.length===0){toast('No cases match that scope','#ef4444');return;}
+
+  // Results start as pending so progress is measurable from the outset.
+  const results={};
+  cases.forEach(c=>results[c.id]={result:'pending',note:'',at:null});
+
+  const run={
+    id:store.nextId.run++,
+    name,
+    project:parseInt(document.getElementById('rProj').value)||1,
+    build:document.getElementById('rBuild').value.trim(),
+    env:document.getElementById('rEnv').value.trim(),
+    date:new Date().toISOString().slice(0,10),
+    status:'running',
+    caseIds:cases.map(c=>c.id),
+    results
+  };
+
+  store.runs.push(run);
+  saveStore();
+  closeModal('runModal');
+  renderRuns();
+  startExec(run.id);
+  toast(`Run created with ${cases.length} cases ✓`,'#16a34a');
 }
-function delRun(id){if(!confirm('Delete?'))return;store.runs=store.runs.filter(r=>r.id!==id);saveStore();renderRuns();toast('Deleted','#ef4444');}
+
+function delRun(id){
+  if(!confirm('Delete this run and its results?'))return;
+  store.runs=store.runs.filter(r=>r.id!==id);
+  if(execRunId===id) closeExec();
+  saveStore();renderRuns();toast('Deleted','#ef4444');
+}
+
+// ── EXECUTION ─────────────────────────────────────────────────────────
+let execRunId=null, execIndex=0;
+
+function startExec(runId){
+  execRunId=runId;
+  const run=store.runs.find(r=>r.id===runId);
+  if(!run)return;
+  // Resume at the first case that has not been judged yet.
+  execIndex=Math.max(0,(run.caseIds||[]).findIndex(id=>
+    (run.results[id]?.result||'pending')==='pending'));
+  if(execIndex===-1) execIndex=0;
+  document.getElementById('execPanel').style.display='block';
+  renderExec();
+  document.getElementById('execPanel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function closeExec(){
+  execRunId=null;
+  document.getElementById('execPanel').style.display='none';
+}
+
+function renderExec(){
+  const run=store.runs.find(r=>r.id===execRunId);
+  if(!run){closeExec();return;}
+
+  const ids=run.caseIds||[];
+  const done=ids.filter(id=>(run.results[id]?.result||'pending')!=='pending').length;
+
+  document.getElementById('execTitle').textContent=run.name;
+  document.getElementById('execProgress').textContent=
+    `${done} of ${ids.length} judged · ${esc(run.build||'no build recorded')}`;
+  document.getElementById('execBarFill').style.width=
+    ids.length ? (done/ids.length*100)+'%' : '0%';
+
+  // Every case judged — summarise rather than showing an empty panel.
+  if(execIndex>=ids.length){
+    const vals=Object.values(run.results);
+    const p=vals.filter(v=>v.result==='passed').length;
+    const f=vals.filter(v=>v.result==='failed').length;
+    const b=vals.filter(v=>v.result==='blocked').length;
+    run.status = f>0 ? 'failed' : 'passed';
+    saveStore();
+    document.getElementById('execCase').innerHTML=`
+      <h3>Run complete</h3>
+      <p style="color:var(--text-mid);font-size:13px;margin-top:6px">
+        ${p} passed · ${f} failed · ${b} blocked, out of ${ids.length} cases.
+      </p>
+      <p style="color:var(--text-mid);font-size:12px;margin-top:10px">
+        Failed cases have been marked on the board. Raise a defect for each one
+        that is an application fault rather than a test fault.
+      </p>`;
+    document.querySelector('.exec-actions').style.display='none';
+    document.getElementById('execNote').parentElement.style.display='none';
+    renderRuns();renderDash();renderBoards();renderCases();
+    return;
+  }
+
+  document.querySelector('.exec-actions').style.display='flex';
+  document.getElementById('execNote').parentElement.style.display='block';
+
+  const c=store.cases.find(x=>x.id===ids[execIndex]);
+  if(!c){execIndex++;renderExec();return;}   // case deleted since the run began
+
+  const prior=run.results[c.id]||{};
+  document.getElementById('execNote').value=prior.note||'';
+
+  const steps=(c.steps||'').split('\n').filter(s=>s.trim());
+
+  document.getElementById('execCase').innerHTML=`
+    <div class="exec-cid">${esc(c.jsonId||('#'+c.id))} · case ${execIndex+1} of ${ids.length}</div>
+    <h3>${esc(c.title)}</h3>
+    <div class="exec-meta">
+      ${priBadge(c.priority)}
+      ${c.cat?`<span class="badge b-func">${esc(c.cat)}</span>`:''}
+      ${prior.result&&prior.result!=='pending'
+        ? `<span class="run-result rr-${prior.result}">previously ${prior.result}</span>`:''}
+    </div>
+    ${c.desc?`<div class="exec-sec"><div class="exec-sec-t">Description</div><p>${esc(c.desc)}</p></div>`:''}
+    ${c.pre?`<div class="exec-sec"><div class="exec-sec-t">Preconditions</div><p>${esc(c.pre)}</p></div>`:''}
+    ${steps.length?`<div class="exec-sec"><div class="exec-sec-t">Steps</div>
+      <ol>${steps.map(s=>`<li>${esc(s.replace(/^\\d+[\\.\\)]\\s*/,''))}</li>`).join('')}</ol></div>`:''}
+    ${c.exp?`<div class="exec-sec"><div class="exec-sec-t">Expected result</div>
+      <div class="exec-expected">${esc(c.exp)}</div></div>`:''}`;
+}
+
+function execMark(result){
+  const run=store.runs.find(r=>r.id===execRunId);
+  if(!run)return;
+  const caseId=run.caseIds[execIndex];
+
+  run.results[caseId]={
+    result,
+    note:document.getElementById('execNote').value.trim(),
+    at:new Date().toISOString()
+  };
+
+  // Mirror pass/fail onto the case so the board and dashboard reflect the
+  // most recent run at a glance. The run keeps the full history.
+  const c=store.cases.find(x=>x.id===caseId);
+  if(c&&(result==='passed'||result==='failed')){
+    c.status=result==='passed'?'approved':'failed';
+    c.boardCol=result==='passed'?'approved':'failed';
+  }
+
+  saveStore();
+  execIndex++;
+  document.getElementById('execNote').value='';
+  renderExec();
+}
 
 // ── DEFECTS ──
 function renderDefects(){
@@ -1491,6 +1775,7 @@ function renderDefects(){
       <td>${priBadge(d.severity)}</td>
       <td>${defStatBadge(d.status)}</td>
       <td>${projName(d.project)}</td>
+      <td>${caseLabel(d.caseId)}</td>
       <td style="display:flex;gap:4px">
         <button class="btn btn-ghost" style="font-size:11px" onclick="openDefectModal(${d.id})"><i class="fas fa-edit"></i></button>
         <button class="btn btn-ghost" style="color:var(--red);font-size:11px" onclick="delDefect(${d.id})"><i class="fas fa-trash"></i></button>
@@ -1498,9 +1783,30 @@ function renderDefects(){
     </tr>`).join('');
 }
 
+// Renders the linked case as its ID, or a dash when a defect stands alone.
+// Some defects legitimately have no case — DEF-010 in the EMERGEX project is
+// one, because the control it describes does not exist to be specified.
+function caseLabel(caseId){
+  if(!caseId) return `<span style="color:var(--text-light)">&mdash;</span>`;
+  const c=store.cases.find(x=>x.id===caseId);
+  if(!c) return `<span style="color:var(--text-light)">deleted</span>`;
+  return `<span style="font-family:monospace;font-size:11px" title="${esc(c.title)}">${esc(c.jsonId||('#'+c.id))}</span>`;
+}
+
+// Populates the case dropdown on the defect modal.
+function fillCaseSel(){
+  const sel=document.getElementById('dCase');
+  if(!sel)return;
+  const current=sel.value;
+  sel.innerHTML='<option value="">Not linked to a case</option>'+
+    store.cases.map(c=>`<option value="${c.id}">${esc(c.jsonId||('#'+c.id))} — ${esc(c.title)}</option>`).join('');
+  sel.value=current;
+}
+
 function openDefectModal(id){
   editDefect=id||null;
   fillProjSel('dProj');
+  fillCaseSel();
   document.getElementById('defMT').textContent=editDefect?'Edit Defect':'New Defect';
   if(editDefect){
     const d=store.defects.find(x=>x.id===editDefect);
@@ -1508,11 +1814,13 @@ function openDefectModal(id){
     document.getElementById('dSev').value=d.severity;
     document.getElementById('dStat').value=d.status;
     document.getElementById('dProj').value=d.project;
+    document.getElementById('dCase').value=d.caseId||'';
     document.getElementById('dDesc').value=d.desc||'';
   }else{
     ['dTitle','dDesc'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('dSev').value='medium';
     document.getElementById('dStat').value='open';
+    document.getElementById('dCase').value='';
   }
   openModal('defectModal');
 }
@@ -1520,7 +1828,9 @@ function openDefectModal(id){
 function saveDefect(){
   const title=document.getElementById('dTitle').value.trim();if(!title)return;
   const data={title,severity:document.getElementById('dSev').value,status:document.getElementById('dStat').value,
-    project:parseInt(document.getElementById('dProj').value)||1,desc:document.getElementById('dDesc').value.trim()};
+    project:parseInt(document.getElementById('dProj').value)||1,
+    caseId:parseInt(document.getElementById('dCase').value)||null,
+    desc:document.getElementById('dDesc').value.trim()};
   if(editDefect){
     const i=store.defects.findIndex(d=>d.id===editDefect);
     store.defects[i]={...store.defects[i],...data};
@@ -1661,54 +1971,20 @@ function openTrash(){
   }
 }
 
-// ── AI ──
-function openAI(){openModal('aiModal');}
-
-function runAI(){
-  const p=document.getElementById('aiPrompt').value.trim();
-  if(!p){document.getElementById('aiPrompt').focus();return;}
-  const type=document.getElementById('aiType').value;
-  document.getElementById('aiBox').style.display='block';
-  document.getElementById('aiActs').style.display='none';
-  document.getElementById('aiOut').innerHTML='<span class="ai-think">✦ Generating test cases...</span>';
-  setTimeout(()=>{
-    aiResult=genAI(p,type);
-    document.getElementById('aiOut').textContent=aiResult;
-    document.getElementById('aiActs').style.display='flex';
-  },900);
-}
-
-function genAI(p,type){
+/* The AI template generator was removed: it produced fixed boilerplate
+   rather than anything derived from the system under test, which is worse
+   than useless for test design — a generic "TC-001: Happy Path" invites
+   you to stop thinking. Cases are now written from requirements, or
+   cloned from an existing case.
+function genAI_REMOVED(p,type){
   const t=p.slice(0,55);
   if(type==='smoke')return `SMOKE TEST — ${t}\n\n[ ] App loads without errors\n[ ] Core feature is accessible\n[ ] Basic happy path works\n[ ] No console errors on load\n[ ] Navigation works\n[ ] Login/logout functional\n[ ] Key API endpoints respond`;
   if(type==='regression')return `REGRESSION CHECKLIST — ${t}\n\n[ ] Previous bug fixes still working\n[ ] Core user flows unaffected\n[ ] Login and authentication\n[ ] Data save and retrieve\n[ ] UI renders on all screen sizes\n[ ] API endpoints return expected responses\n[ ] Error handling works\n[ ] Permissions and roles correct`;
   if(type==='api')return `API TEST CASES — ${t}\n\nTC-001: Valid GET Request\nEndpoint: GET /api/resource\nExpected Status: 200\nExpected: Returns correct data\n\nTC-002: Create Resource\nEndpoint: POST /api/resource\nBody: {valid payload}\nExpected Status: 201\nExpected: Resource created\n\nTC-003: Unauthorised Request\nExpected Status: 401\n\nTC-004: Invalid Input\nExpected Status: 400\nExpected: Validation error`;
   if(type==='security')return `SECURITY TEST CASES — ${t}\n\nTC-001: SQL Injection\nInput: ' OR 1=1 --\nExpected: Input rejected\n\nTC-002: XSS Attack\nInput: <script>alert('xss')<\/script>\nExpected: Script not executed\n\nTC-003: Brute Force\nAction: 10 failed login attempts\nExpected: Account locked\n\nTC-004: Unauthorised Access\nExpected: 403 Forbidden`;
   if(type==='exploratory')return `EXPLORATORY TESTING — ${t}\n\nCharter: Explore ${t} for unexpected behaviour\n\nAreas to explore:\n• Happy path with valid data\n• Boundary values and edge cases\n• Invalid and unexpected inputs\n• Network failure scenarios\n• Mobile and cross-browser behaviour\n\nRisks:\n• Data loss on errors\n• Inconsistent UI states\n• Permission bypass`;
-  return `MANUAL TEST CASES — ${t}\n\nTC-001: Happy Path\nPreconditions: System is running\nSteps:\n  1. Navigate to the feature\n  2. Enter valid data\n  3. Submit\nExpected: Success shown\nPriority: High\n\nTC-002: Empty Input Validation\nSteps:\n  1. Leave all fields empty\n  2. Click submit\nExpected: Validation errors shown\nPriority: High\n\nTC-003: Invalid Data\nSteps:\n  1. Enter invalid data\n  2. Submit\nExpected: Error message shown\nPriority: Medium\n\nTC-004: Boundary Values\nSteps:\n  1. Enter max allowed values\nExpected: System handles gracefully\nPriority: Low`;
 }
-
-function saveAI(){
-  const pri=document.getElementById('aiPri').value;
-  const proj=store.projects[0]?.id||1;
-  const lines=aiResult.split('\n').filter(l=>l.match(/^TC-\d+:/));
-  let count=0;
-  if(lines.length){
-    lines.forEach(l=>{
-      const title=l.replace(/TC-\d+:\s*/,'').trim();
-      if(title){store.cases.push({id:store.nextId.case++,title,project:proj,priority:pri,status:'draft',cat:'functional',desc:'AI Generated',pre:'',steps:'',exp:'',date:new Date().toISOString().split('T')[0],ai:true,boardCol:'draft'});count++;}
-    });
-  }else{
-    const title=document.getElementById('aiPrompt').value.trim().slice(0,70);
-    store.cases.push({id:store.nextId.case++,title:`AI: ${title}`,project:proj,priority:pri,status:'draft',cat:'functional',desc:aiResult.slice(0,100),pre:'',steps:aiResult,exp:'',date:new Date().toISOString().split('T')[0],ai:true,boardCol:'draft'});
-    count=1;
-  }
-  saveStore();closeModal('aiModal');renderCases();renderDash();
-  toast(`${count} test case${count>1?'s':''} saved ✓`,'#16a34a');
-}
-
-function copyAI(){navigator.clipboard.writeText(aiResult).then(()=>toast('Copied!','#16a34a'));}
-function clearAI(){document.getElementById('aiOut').textContent='';document.getElementById('aiBox').style.display='none';aiResult='';}
+*/
 
 // ── HELPERS ──
 function projName(id){return store.projects.find(p=>p.id===id)?.name||'Unknown';}
@@ -1733,7 +2009,7 @@ function toast(msg,color){
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
-    ['aiModal','projectModal','caseModal','runModal','defectModal'].forEach(closeModal);
+    ['projectModal','caseModal','runModal','defectModal'].forEach(closeModal);
     closeNav();
   }
 });
