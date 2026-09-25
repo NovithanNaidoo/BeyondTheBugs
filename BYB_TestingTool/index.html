@@ -171,7 +171,9 @@
   .hero-btns { display: flex; gap: 10px; align-items: center; }
 
   /* ── STATS ── */
-  .stats { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; margin-bottom: 24px; }
+  /* auto-fit rather than a fixed count, so adding or removing a stat card
+     does not require touching the CSS */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 24px; }
   .stat-card {
     background: var(--white); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 18px 16px;
@@ -279,30 +281,78 @@
   tbody td { padding: 13px 18px; font-size: 13px; vertical-align: middle; }
 
   /* ── KANBAN BOARD ── */
-  .kanban-wrap { padding: 20px; overflow-x: auto; }
-  .kanban { display: flex; gap: 16px; min-width: max-content; align-items: flex-start; }
+  /* ── KANBAN BOARD ──────────────────────────────────────────────────
+     Columns are fixed height and scroll internally, rather than growing
+     with their contents. Without this, one long column stretches the
+     page and you end up zooming out to reach a drop target — which is
+     precisely what Trello and Jira avoid by scrolling within a column.  */
+  .kanban-wrap { padding: 16px 20px 20px; overflow-x: auto; scroll-behavior: smooth; }
+  .kanban { display: flex; gap: 14px; align-items: flex-start; padding-bottom: 6px; }
+
   .k-col {
-    width: 260px; background: var(--bg);
-    border-radius: 10px; border: 1px solid var(--border); flex-shrink: 0;
+    width: 250px; flex-shrink: 0;
+    background: var(--bg);
+    border-radius: 10px; border: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    /* leaves room for the topbar, page header and toolbar above it */
+    max-height: calc(100vh - 250px);
+    transition: border-color 0.15s, background 0.15s;
   }
+  /* The whole column is the drop target, not a small strip at the bottom. */
+  .k-col.over { border-color: var(--green); background: rgba(22,163,74,0.05); }
+
   .k-col-hd {
-    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    padding: 11px 13px; border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
   }
   .k-col-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
   .kdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .k-col-count { font-size: 11px; font-weight: 700; color: var(--text-light); background: var(--border); padding: 1px 7px; border-radius: 20px; }
-  .k-col-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 100px; }
+
+  .k-col-body {
+    padding: 9px; display: flex; flex-direction: column; gap: 8px;
+    overflow-y: auto; flex: 1; min-height: 70px;
+  }
+  .k-col-body::-webkit-scrollbar { width: 5px; }
+  .k-col-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
   .k-card {
     background: var(--white); border: 1px solid var(--border);
-    border-radius: 8px; padding: 12px; cursor: grab; transition: all 0.15s;
+    border-radius: 8px; padding: 11px; cursor: grab; transition: all 0.15s;
+    flex-shrink: 0;
   }
   .k-card:hover { border-color: var(--green-border); box-shadow: 0 2px 8px rgba(22,163,74,0.1); }
   .k-card.dragging { opacity: 0.4; cursor: grabbing; }
   .k-card-title { font-size: 12px; font-weight: 500; margin-bottom: 8px; line-height: 1.4; color: var(--text); }
   .k-card-foot { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-  .k-drop { min-height: 40px; border: 2px dashed transparent; border-radius: 8px; transition: all 0.15s; }
-  .k-drop.over { border-color: var(--green); background: rgba(22,163,74,0.04); }
+
+  /* Arrow buttons to shift a card one column left or right.
+     Drag-and-drop does not work on touch screens at all, and it is
+     awkward when the destination column is off-screen — these always work. */
+  .k-card-move {
+    display: flex; gap: 4px; margin-top: 9px;
+    padding-top: 8px; border-top: 1px solid var(--border);
+  }
+  .k-move-btn {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 5px; cursor: pointer; padding: 3px 0;
+    font-size: 11px; color: var(--text-mid); transition: all 0.15s;
+  }
+  .k-move-btn:hover:not(:disabled) { background: var(--green); color: #fff; border-color: var(--green); }
+  .k-move-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .k-empty {
+    font-size: 11px; color: var(--text-light); text-align: center;
+    padding: 18px 8px; border: 1.5px dashed var(--border); border-radius: 8px;
+  }
+
+  /* Board toolbar */
+  .k-toolbar {
+    padding: 12px 20px 0; display: flex; gap: 9px; align-items: center; flex-wrap: wrap;
+  }
+  .k-toolbar .select-filter { font-size: 12px; }
+  .k-hint { font-size: 11px; color: var(--text-light); margin-left: auto; }
 
   /* ── EMPTY STATE ── */
   .empty {
@@ -456,8 +506,10 @@
     .toast { min-width: 0; }
 
     /* Kanban already scrolls sideways — just narrow the columns a little */
-    .kanban-wrap { padding: 14px; }
-    .k-col { width: 220px; }
+    .kanban-wrap { padding: 12px; }
+    .k-col { width: 210px; max-height: calc(100dvh - 210px); }
+    .k-toolbar { padding: 10px 12px 0; }
+    .k-hint { display: none; }
 
     /* iOS zooms the page in when a font smaller than 16px gains focus */
     .fi, .ft, .fs, .cases-search input, .search-wrap input { font-size: 16px; }
@@ -687,7 +739,26 @@
           </div>
           <button class="btn btn-green" onclick="openCaseModal()"><i class="fas fa-plus"></i> New Test Case</button>
         </div>
-        <div class="kanban-wrap">
+        <div class="k-toolbar">
+          <select class="select-filter" id="kFilterPriority" onchange="renderBoards()">
+            <option value="">All priorities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <select class="select-filter" id="kFilterLayer" onchange="renderBoards()">
+            <option value="">All layers</option>
+            <option value="ui">UI</option>
+            <option value="functional">Functional</option>
+            <option value="integration">Integration</option>
+            <option value="end-to-end (e2e)">End-to-End</option>
+            <option value="regression">Regression</option>
+            <option value="security">Security</option>
+          </select>
+          <span class="k-hint">Drag a card, or use the arrows on it to move one column at a time</span>
+        </div>
+        <div class="kanban-wrap" id="kanbanWrap">
           <div class="kanban" id="kanban"></div>
         </div>
       </div>
@@ -1185,12 +1256,16 @@ function goTo(page, navEl){
 function renderDash(){
   const total=store.cases.length;
   const approved=store.cases.filter(c=>c.status==='approved').length;
+  const failed=store.cases.filter(c=>c.status==='failed').length;
   const drafts=store.cases.filter(c=>c.status==='draft').length;
   const critical=store.cases.filter(c=>c.priority==='critical').length;
   const aiGen=store.cases.filter(c=>c.ai).length;
   document.getElementById('statsGrid').innerHTML=[
     ['Total Cases',total,'fa-flask','#dcfce7','#15803d'],
     ['Approved',approved,'fa-check-circle','#dcfce7','#15803d'],
+    // Failures are the most important number on a QA dashboard — they
+    // should never be something you have to filter for to discover.
+    ['Failed',failed,'fa-times-circle','#fee2e2','#dc2626'],
     ['Drafts',drafts,'fa-clock','#fef9c3','#a16207'],
     ['Critical',critical,'fa-exclamation-triangle','#fee2e2','#dc2626'],
     ['AI Generated',aiGen,'fa-magic','#f3e8ff','#7c3aed'],
@@ -1459,25 +1534,40 @@ function saveDefect(){
 function delDefect(id){if(!confirm('Delete?'))return;store.defects=store.defects.filter(d=>d.id!==id);saveStore();renderDefects();renderDash();toast('Deleted','#ef4444');}
 
 // ── BOARDS ──
+// Failed sits after Approved: a case is written, reviewed, approved, then
+// executed — and failing is an outcome of execution, not a draft state.
 const BCOLS=[
   {id:'draft',name:'Draft',color:'#6b7280'},
   {id:'ready',name:'Ready',color:'#3b82f6'},
   {id:'review',name:'In Review',color:'#eab308'},
   {id:'approved',name:'Approved',color:'#16a34a'},
+  {id:'failed',name:'Failed',color:'#dc2626'},
 ];
 
 function renderBoards(){
   const kb=document.getElementById('kanban');
-  kb.innerHTML=BCOLS.map(col=>{
-    const cc=store.cases.filter(c=>(c.boardCol||'draft')===col.id);
+  const fp=document.getElementById('kFilterPriority')?.value||'';
+  const fl=document.getElementById('kFilterLayer')?.value||'';
+
+  const visible=store.cases.filter(c=>
+    (!fp||c.priority===fp) && (!fl||c.cat===fl));
+
+  kb.innerHTML=BCOLS.map((col,index)=>{
+    const cc=visible.filter(c=>(c.boardCol||'draft')===col.id);
+    const prev=BCOLS[index-1];
+    const next=BCOLS[index+1];
+
     return `
-      <div class="k-col">
+      <div class="k-col" data-col="${col.id}"
+           ondragover="onDO(event)" ondragleave="onDL(event)" ondrop="onDP(event,'${col.id}')">
         <div class="k-col-hd">
           <div class="k-col-title"><div class="kdot" style="background:${col.color}"></div>${col.name}</div>
           <span class="k-col-count">${cc.length}</span>
         </div>
-        <div class="k-col-body" id="kb-${col.id}">
-          ${cc.map(c=>`
+        <div class="k-col-body">
+          ${cc.length===0
+            ? `<div class="k-empty">Drop a card here</div>`
+            : cc.map(c=>`
             <div class="k-card" draggable="true" data-id="${c.id}"
               ondragstart="onDS(event)" ondragend="onDE(event)">
               <div class="k-card-title">${esc(c.title)}</div>
@@ -1485,23 +1575,80 @@ function renderBoards(){
                 ${priBadge(c.priority)}
                 ${c.cat?`<span class="badge b-func">${c.cat}</span>`:''}
               </div>
+              <div class="k-card-move">
+                <button class="k-move-btn" ${prev?'':'disabled'}
+                  title="${prev?'Move to '+prev.name:'Already in the first column'}"
+                  onclick="moveCard(${c.id},'${prev?prev.id:''}')">&#8592;</button>
+                <button class="k-move-btn" ${next?'':'disabled'}
+                  title="${next?'Move to '+next.name:'Already in the last column'}"
+                  onclick="moveCard(${c.id},'${next?next.id:''}')">&#8594;</button>
+              </div>
             </div>`).join('')}
-          <div class="k-drop" data-col="${col.id}"
-            ondragover="onDO(event)" ondragleave="onDL(event)" ondrop="onDP(event,'${col.id}')"></div>
         </div>
       </div>`;
   }).join('');
 }
 
-function onDS(e){dragId=e.currentTarget.dataset.id;e.currentTarget.classList.add('dragging');}
-function onDE(e){e.currentTarget.classList.remove('dragging');}
+// Shared by both the arrow buttons and drag-and-drop, so the two paths
+// can never drift apart.
+function moveCard(id,col){
+  if(!col)return;
+  const c=store.cases.find(x=>x.id===id);
+  if(!c||c.boardCol===col)return;
+  c.boardCol=col;
+  saveStore();
+  renderBoards();
+  toast(`Moved to ${BCOLS.find(b=>b.id===col)?.name}`,'#16a34a');
+}
+
+function onDS(e){
+  dragId=e.currentTarget.dataset.id;
+  e.currentTarget.classList.add('dragging');
+  edgeScroll.start();
+}
+function onDE(e){
+  e.currentTarget.classList.remove('dragging');
+  edgeScroll.stop();
+}
 function onDO(e){e.preventDefault();e.currentTarget.classList.add('over');}
-function onDL(e){e.currentTarget.classList.remove('over');}
+function onDL(e){
+  // dragleave also fires when moving onto a child element, which would
+  // flicker the highlight — only clear it when genuinely outside.
+  if(!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove('over');
+}
+
+// Scrolls the board sideways while a card is held near either edge, so a
+// column that is off-screen can still be reached — the behaviour Trello
+// and Jira both have, and the thing whose absence forces you to zoom out.
+const edgeScroll={
+  timer:null,
+  x:0,
+  start(){
+    document.addEventListener('dragover',this.track);
+    this.timer=setInterval(()=>{
+      const wrap=document.getElementById('kanbanWrap');
+      if(!wrap)return;
+      const r=wrap.getBoundingClientRect();
+      const zone=90;
+      if(this.x>0&&this.x-r.left<zone)      wrap.scrollLeft-=18;
+      else if(this.x>0&&r.right-this.x<zone) wrap.scrollLeft+=18;
+    },16);
+  },
+  stop(){
+    clearInterval(this.timer);
+    this.timer=null;
+    this.x=0;
+    document.removeEventListener('dragover',this.track);
+    document.querySelectorAll('.k-col.over').forEach(el=>el.classList.remove('over'));
+  },
+  track(e){ edgeScroll.x=e.clientX; }
+};
 function onDP(e,col){
-  e.preventDefault();e.currentTarget.classList.remove('over');
+  e.preventDefault();
+  e.currentTarget.classList.remove('over');
+  edgeScroll.stop();
   if(!dragId)return;
-  const c=store.cases.find(x=>x.id===parseInt(dragId));
-  if(c&&c.boardCol!==col){c.boardCol=col;saveStore();renderBoards();toast(`Moved to ${BCOLS.find(b=>b.id===col)?.name}`,'#16a34a');}
+  moveCard(parseInt(dragId),col);
   dragId=null;
 }
 
