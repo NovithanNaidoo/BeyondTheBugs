@@ -683,6 +683,19 @@
             <div class="section-sub" id="caseCount">0 test cases</div>
           </div>
           <div style="display:flex;gap:8px">
+            <!-- Import loads a whole suite from a JSON file instead of
+                 typing cases in one at a time. The file input is hidden;
+                 the button in front of it opens the picker. -->
+            <input type="file" id="importFile" accept=".json,application/json"
+                   style="display:none" onchange="importCases(this)">
+            <button class="btn btn-outline" onclick="document.getElementById('importFile').click()"
+                    title="Load test cases from a JSON file">
+              <i class="fas fa-file-import"></i> Import
+            </button>
+            <button class="btn btn-outline" onclick="exportCases()"
+                    title="Save the current test cases to a JSON file">
+              <i class="fas fa-file-export"></i> Export
+            </button>
             <button class="btn btn-green" onclick="openCaseModal()"><i class="fas fa-plus"></i> New Test Case</button>
           </div>
         </div>
@@ -1441,6 +1454,177 @@ function openCaseModal(id){
   }
 
   openModal('caseModal');
+}
+
+/* ── IMPORT / EXPORT ──────────────────────────────────────────────────
+ *
+ * Typing a sixty-case suite in one form at a time is an evening's work
+ * and invites mistakes. These two move a suite in and out of the tool as
+ * a file, which also lets the cases live in version control beside the
+ * code they describe.
+ *
+ * Import accepts any of these shapes, so a file from either this tool or
+ * a written specification works without editing it first:
+ *
+ *   [ {...}, {...} ]            a bare array of cases
+ *   { cases: [ ... ] }          this tool's own export
+ *   { data: { cases: [...] } }  a full store document
+ *
+ * Field names are flexible for the same reason: a case may use this
+ * tool's names (exp, pre, cat, jsonId) or the longer ones a specification
+ * tends to use (expected, precondition, level, id). Steps may be one
+ * newline-separated string or an array of strings.
+ */
+
+function normaliseImportedCase(raw){
+  // Steps arrive either as an array or as one newline-separated string.
+  let steps = raw.steps;
+  if(Array.isArray(steps)){
+    steps = steps
+      .map((s,i)=> /^\s*\d+[.)]/.test(s) ? s : `${i+1}. ${s}`)
+      .join('\n');
+  }
+  steps = (steps||'').toString();
+
+  const allowedPriority = ['high','medium','low'];
+  const allowedStatus   = ['draft','ready','approved'];
+
+  const priority = allowedPriority.includes((raw.priority||'').toLowerCase())
+                 ? raw.priority.toLowerCase() : 'medium';
+  const status   = allowedStatus.includes((raw.status||'').toLowerCase())
+                 ? raw.status.toLowerCase() : 'draft';
+
+  // Map whatever the file calls the layer onto one of the six this tool
+  // offers. "Logic" cases - pure calculation, no browser - belong under
+  // functional here, since there is no separate layer for them.
+  const CAT_MAP = {
+    'ui':'ui', 'user interface':'ui', 'presentation':'ui',
+    'functional':'functional', 'logic':'functional', 'unit':'functional',
+    'integration':'integration', 'persistence':'integration',
+    'e2e':'end-to-end (e2e)', 'end-to-end':'end-to-end (e2e)',
+    'end to end':'end-to-end (e2e)', 'journey':'end-to-end (e2e)',
+    'regression':'regression', 'smoke':'regression',
+    'security':'security'
+  };
+  const rawCat = (raw.cat || raw.category || raw.level || 'functional')
+                   .toString().toLowerCase().trim();
+  const cat = CAT_MAP[rawCat] || 'functional';
+
+  // The requirements a case verifies become its tags, so a case can be
+  // found by the rule it checks rather than only by its title.
+  const tags = Array.isArray(raw.traces) ? raw.traces.join(', ')
+             : (raw.tags || raw.traces || '').toString();
+
+  return {
+    jsonId:   (raw.jsonId || raw.id || raw.ref || '').toString(),
+    title:    (raw.title || raw.name || 'Untitled case').toString(),
+    desc:     (raw.desc || raw.description || raw.summary || '').toString(),
+    priority,
+    status,
+    cat,
+    pre:      (raw.pre || raw.precondition || raw.preconditions || '').toString(),
+    steps,
+    exp:      (raw.exp || raw.expected || raw.expected_result || '').toString(),
+    tags,
+    date:     (raw.date || new Date().toISOString().split('T')[0]),
+    ai:       false,
+    boardCol: status
+  };
+}
+
+function importCases(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    let parsed;
+    try{
+      parsed = JSON.parse(e.target.result);
+    }catch(err){
+      toast('That file is not valid JSON','#dc2626');
+      input.value='';
+      return;
+    }
+
+    // Find the array of cases wherever it happens to sit.
+    const incoming = Array.isArray(parsed) ? parsed
+                   : Array.isArray(parsed.cases) ? parsed.cases
+                   : (parsed.data && Array.isArray(parsed.data.cases)) ? parsed.data.cases
+                   : null;
+
+    if(!incoming || incoming.length === 0){
+      toast('No test cases found in that file','#dc2626');
+      input.value='';
+      return;
+    }
+
+    // Skip anything whose ID is already here, so importing the same file
+    // twice updates nothing rather than creating sixty duplicates.
+    const existing = new Set(
+      store.cases.map(c => (c.jsonId||'').toString().toLowerCase()).filter(Boolean)
+    );
+
+    let added = 0, skipped = 0;
+
+    incoming.forEach(raw=>{
+      const c = normaliseImportedCase(raw);
+      const key = c.jsonId.toLowerCase();
+
+      if(key && existing.has(key)){ skipped++; return; }
+      if(key) existing.add(key);
+
+      store.cases.push({ id: store.nextId.case++, ...c });
+      added++;
+    });
+
+    saveStore();
+    if(typeof renderCases==='function')  renderCases();
+    if(typeof renderBoards==='function') renderBoards();
+    if(typeof renderStats==='function')  renderStats();
+
+    const msg = skipped
+      ? `Imported ${added}, skipped ${skipped} already present`
+      : `Imported ${added} test case${added===1?'':'s'} ✓`;
+    toast(msg, added ? '#16a34a' : '#dc2626');
+
+    input.value='';   // so the same file can be chosen again
+  };
+
+  reader.onerror = function(){
+    toast('Could not read that file','#dc2626');
+    input.value='';
+  };
+
+  reader.readAsText(file);
+}
+
+function exportCases(){
+  const cases = store.cases || [];
+  if(cases.length === 0){
+    toast('There are no test cases to export','#dc2626');
+    return;
+  }
+
+  const payload = {
+    exported: new Date().toISOString(),
+    tool: 'BeyondTheBugs Testing Tool',
+    count: cases.length,
+    cases
+  };
+
+  const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `test-cases-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  toast(`Exported ${cases.length} test cases ✓`,'#16a34a');
 }
 
 function saveCase(){
