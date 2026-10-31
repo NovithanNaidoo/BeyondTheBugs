@@ -696,6 +696,10 @@
                     title="Save the current test cases to a JSON file">
               <i class="fas fa-file-export"></i> Export
             </button>
+            <button class="btn btn-ghost" style="color:var(--red)" onclick="deleteAllCases()"
+                    title="Move every test case to the trash">
+              <i class="fas fa-trash"></i> Delete all
+            </button>
             <button class="btn btn-green" onclick="openCaseModal()"><i class="fas fa-plus"></i> New Test Case</button>
           </div>
         </div>
@@ -895,6 +899,34 @@
     <div class="mf">
       <button class="btn btn-outline" onclick="closeModal('projectModal')">Cancel</button>
       <button class="btn btn-green" onclick="saveProject()">Create Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRASH MODAL -->
+<!-- Deleted cases land here rather than disappearing. Nothing is removed
+     for good until it is permanently deleted from this view, so a wrong
+     delete is always recoverable. -->
+<div class="overlay" id="trashModal" onclick="closeOut('trashModal',event)">
+  <div class="modal modal-lg">
+    <div class="modal-hd">
+      <h2><i class="fas fa-trash" style="color:var(--red)"></i> Trash</h2>
+      <button class="modal-x" onclick="closeModal('trashModal')">✕</button>
+    </div>
+
+    <p class="section-sub" id="trashSub" style="margin-bottom:14px">
+      Deleted test cases stay here until you remove them permanently.
+    </p>
+
+    <div id="trashList" style="max-height:48vh;overflow-y:auto"></div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="restoreAllTrash()">
+        <i class="fas fa-rotate-left"></i> Restore all
+      </button>
+      <button class="btn btn-ghost" style="color:var(--red)" onclick="emptyTrash()">
+        <i class="fas fa-triangle-exclamation"></i> Permanently delete all
+      </button>
     </div>
   </div>
 </div>
@@ -1157,6 +1189,15 @@ let store = JSON.parse(localStorage.getItem('btstore2')||'null')||{
   trash:[],
   nextId:{project:3,case:7,run:1,defect:1}
 };
+/* A store saved by an older version of the tool may predate some of
+   these collections. Fill in anything missing so nothing has to check
+   for undefined later. */
+store.cases   = store.cases   || [];
+store.trash   = store.trash   || [];
+store.runs    = store.runs    || [];
+store.defects = store.defects || [];
+store.nextId  = store.nextId  || {project:1, case:1, run:1, defect:1};
+
 let editCase=null, editDefect=null, dragId=null;
 
 // ── CLOUD SYNC (Supabase) ─────────────────────────────────────────────
@@ -2146,13 +2187,156 @@ function onDP(e,col){
   dragId=null;
 }
 
-// ── TRASH ──
+/* ── TRASH ────────────────────────────────────────────────────────────
+ *
+ * Deleting used to be a confirm box that destroyed the case immediately,
+ * which meant one misread dialog lost work with no way back. Deleted
+ * cases now sit here until they are explicitly removed for good, and can
+ * be restored individually or all at once.
+ *
+ * Two separate destructive actions, deliberately: "Delete all" moves the
+ * visible cases to the trash and is reversible; "Permanently delete all"
+ * empties the trash and is not. Only the second one asks twice.
+ */
+
 function openTrash(){
-  if(store.trash.length===0){toast('Trash is empty','#6b7280');return;}
-  const list=store.trash.map(c=>`• ${c.title}`).join('\n');
-  if(confirm(`Trash (${store.trash.length} items):\n\n${list}\n\nPermanently delete all?`)){
-    store.trash=[];saveStore();toast('Trash emptied','#ef4444');
+  renderTrash();
+  openModal('trashModal');
+}
+
+function renderTrash(){
+  const list = document.getElementById('trashList');
+  const sub  = document.getElementById('trashSub');
+  const items = store.trash || [];
+
+  sub.textContent = items.length === 0
+    ? 'Trash is empty.'
+    : `${items.length} deleted test case${items.length===1?'':'s'}. These stay here until you remove them permanently.`;
+
+  if(items.length === 0){
+    list.innerHTML = `<div style="text-align:center;padding:36px 12px;color:var(--text-light)">
+        <i class="fas fa-trash" style="font-size:28px;opacity:.35"></i>
+        <p style="margin-top:10px">Nothing has been deleted.</p>
+      </div>`;
+    return;
   }
+
+  // Newest first - the thing you just deleted by mistake is at the top.
+  const ordered = [...items].sort((a,b)=>
+    (b.deletedAt||'').localeCompare(a.deletedAt||'')
+  );
+
+  list.innerHTML = ordered.map(c=>{
+    const when = c.deletedAt
+      ? new Date(c.deletedAt).toLocaleString()
+      : 'unknown date';
+    const ref = c.jsonId ? `<span style="color:var(--green);font-weight:600">${esc(c.jsonId)}</span> · ` : '';
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 12px;
+                  border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            ${esc(c.title||'Untitled case')}
+          </div>
+          <div style="font-size:11px;color:var(--text-light);margin-top:2px">
+            ${ref}${esc(c.cat||'')} · deleted ${esc(when)}
+          </div>
+        </div>
+        <button class="btn btn-outline" style="font-size:11px;padding:5px 10px"
+                onclick="restoreFromTrash(${c.id})" title="Put this case back">
+          <i class="fas fa-rotate-left"></i> Restore
+        </button>
+        <button class="btn btn-ghost" style="color:var(--red);font-size:11px;padding:5px 10px"
+                onclick="deleteForever(${c.id})" title="Remove permanently">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>`;
+  }).join('');
+}
+
+/* Escape anything that came from a user before putting it in innerHTML.
+   A test case titled with a script tag should read as text, not run. */
+function esc(s){
+  return (s==null?'':String(s)).replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+function restoreFromTrash(id){
+  const i = store.trash.findIndex(c=>c.id===id);
+  if(i === -1) return;
+
+  const c = {...store.trash[i]};
+  delete c.deletedAt;
+
+  // The original id may have been reused while it sat in the trash.
+  if(store.cases.some(x=>x.id===c.id)) c.id = store.nextId.case++;
+
+  store.cases.push(c);
+  store.trash.splice(i,1);
+
+  saveStore();
+  renderTrash();
+  if(typeof renderCases==='function')  renderCases();
+  if(typeof renderBoards==='function') renderBoards();
+  if(typeof renderDash==='function')   renderDash();
+  toast('Test case restored ✓','#16a34a');
+}
+
+function restoreAllTrash(){
+  const n = (store.trash||[]).length;
+  if(n === 0){ toast('Trash is empty','#6b7280'); return; }
+
+  [...store.trash].forEach(c=>restoreFromTrash(c.id));
+  toast(`Restored ${n} test case${n===1?'':'s'} ✓`,'#16a34a');
+}
+
+function deleteForever(id){
+  const c = store.trash.find(x=>x.id===id);
+  if(!c) return;
+  if(!confirm(`Permanently delete "${c.title}"?\n\nThis cannot be undone.`)) return;
+
+  store.trash = store.trash.filter(x=>x.id!==id);
+  saveStore();
+  renderTrash();
+  toast('Deleted permanently','#ef4444');
+}
+
+function emptyTrash(){
+  const n = (store.trash||[]).length;
+  if(n === 0){ toast('Trash is already empty','#6b7280'); return; }
+
+  if(!confirm(`Permanently delete all ${n} test case${n===1?'':'s'} in the trash?\n\nThis cannot be undone.`)) return;
+  if(!confirm('Last check — there is no way to recover these. Continue?')) return;
+
+  store.trash = [];
+  saveStore();
+  renderTrash();
+  toast(`Permanently deleted ${n} test case${n===1?'':'s'}`,'#ef4444');
+}
+
+/* Move every case currently shown to the trash. Reversible, so it asks
+   once rather than twice - the trash is the safety net. */
+function deleteAllCases(){
+  const cases = store.cases || [];
+  if(cases.length === 0){ toast('There are no test cases to delete','#6b7280'); return; }
+
+  if(!confirm(
+    `Move all ${cases.length} test case${cases.length===1?'':'s'} to the trash?\n\n` +
+    `They can be restored from Trash afterwards.`
+  )) return;
+
+  const stamp = new Date().toISOString();
+  cases.forEach(c=> store.trash.push({...c, deletedAt: stamp}));
+  store.cases = [];
+
+  saveStore();
+  if(typeof renderCases==='function')  renderCases();
+  if(typeof renderBoards==='function') renderBoards();
+  if(typeof renderDash==='function')   renderDash();
+  if(typeof renderStats==='function')  renderStats();
+
+  toast(`Moved ${cases.length} test case${cases.length===1?'':'s'} to trash`,'#f97316');
 }
 
 /* The AI template generator was removed: it produced fixed boilerplate
