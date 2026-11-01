@@ -784,6 +784,22 @@
             </button>
             <button class="btn btn-ghost" onclick="execMark('skipped')">Skip</button>
           </div>
+
+          <!-- Recording an automated run means judging dozens of cases
+               whose outcome is already known from the runner's output.
+               Marking the exceptions by hand and passing the remainder
+               in one action is faster and less error-prone than fifty
+               identical clicks. -->
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);
+                      display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-outline" onclick="execPassRemaining()"
+                    title="Mark every case still pending as passed">
+              <i class="fas fa-forward"></i> Pass all remaining
+            </button>
+            <span style="font-size:11.5px;color:var(--text-light)">
+              Record the failures and blocked cases first, then pass the rest.
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -1417,8 +1433,16 @@ function delProject(id){if(!confirm('Delete?'))return;store.projects=store.proje
 
 // ── TEST CASES ──
 function getCaseFilter(){
+  /* Two search boxes exist: one in the header, one on the Test Cases
+     view. The page-level one wins when it is present, even when empty -
+     otherwise clearing it silently falls back to whatever is still in
+     the header box, and the list refuses to come back. */
+  const page = document.getElementById('caseSearch');
+  const header = document.getElementById('globalSearch');
+  const q = (page ? page.value : (header ? header.value : '')) || '';
+
   return {
-    q:(document.getElementById('caseSearch')?.value||document.getElementById('globalSearch')?.value||'').toLowerCase(),
+    q: q.trim().toLowerCase(),
     status:document.getElementById('filterStatus')?.value||'',
     priority:document.getElementById('filterPriority')?.value||'',
     cat:document.getElementById('filterCategory')?.value||'',
@@ -1426,10 +1450,31 @@ function getCaseFilter(){
 }
 function filterCases(){renderCases();}
 
+/* Everything a search should look through.
+ *
+ * It used to check only the title and description, which meant typing a
+ * case reference like "TC-31" found nothing - the reference lives in
+ * jsonId. Searching by reference is how you find a specific case when
+ * recording results, so it has to work. Tags matter too: they hold the
+ * requirement each case verifies, so "BR-06" finds every case covering
+ * that rule. */
+function caseMatchesQuery(c, q){
+  if(!q) return true;
+  const haystack = [
+    c.jsonId, c.title, c.desc, c.tags,
+    c.cat, c.priority, c.status,
+    c.pre, c.steps, c.exp
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  // Every word must appear somewhere, so "security csrf" narrows
+  // rather than widening.
+  return q.split(/\s+/).filter(Boolean).every(word => haystack.includes(word));
+}
+
 function renderCases(){
   const f=getCaseFilter();
   let cases=[...store.cases].filter(c=>{
-    if(f.q&&!c.title.toLowerCase().includes(f.q)&&!(c.desc||'').toLowerCase().includes(f.q))return false;
+    if(!caseMatchesQuery(c, f.q))return false;
     if(f.status&&c.status!==f.status)return false;
     if(f.priority&&c.priority!==f.priority)return false;
     if(f.cat&&c.cat!==f.cat)return false;
@@ -1896,6 +1941,48 @@ function startExec(runId){
 function closeExec(){
   execRunId=null;
   document.getElementById('execPanel').style.display='none';
+}
+
+/* Mark every case still pending as passed.
+ *
+ * Only touches cases whose result is still 'pending', so anything
+ * already judged - a failure recorded earlier, a blocked case - is left
+ * exactly as it was. Jumping to a specific case first is how you record
+ * the exceptions; this finishes the rest. */
+function execPassRemaining(){
+  const run = store.runs.find(r => r.id === execRunId);
+  if(!run) return;
+
+  const ids = run.caseIds || [];
+  const pending = ids.filter(id => (run.results[id]?.result || 'pending') === 'pending');
+
+  if(pending.length === 0){
+    toast('Every case has already been judged','#6b7280');
+    return;
+  }
+
+  if(!confirm(
+    `Mark the remaining ${pending.length} case${pending.length===1?'':'s'} as passed?\n\n` +
+    `Cases already recorded as failed or blocked are not affected.`
+  )) return;
+
+  const when = new Date().toISOString();
+  pending.forEach(id => {
+    run.results[id] = { result:'passed', note:'', at:when };
+
+    // Keep the case's own lifecycle in step, as execMark does.
+    const c = store.cases.find(x => x.id === id);
+    if(c){ c.status = 'approved'; c.boardCol = 'approved'; }
+  });
+
+  execIndex = ids.length;          // jump to the summary
+  saveStore();
+  renderExec();
+  if(typeof renderRuns === 'function')  renderRuns();
+  if(typeof renderCases === 'function') renderCases();
+  if(typeof renderBoards === 'function') renderBoards();
+
+  toast(`Marked ${pending.length} case${pending.length===1?'':'s'} as passed ✓`,'#16a34a');
 }
 
 function renderExec(){
