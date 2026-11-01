@@ -49,7 +49,7 @@
     <section class="hero-section">
         <div class="container text-center">
             <h1 class="display-3 fw-bold animate-fade">Welcome to BeyondTheBugs</h1>
-            <p class="lead mb-4 animate-fade">BSc IT Student | Test Automation with Playwright &amp; NUnit | Test Case Design | Aspiring QA Automation Engineer | Class of 2027</p>
+            <p class="lead mb-4 animate-fade">BSc IT Student | Test Automation with Python, pytest &amp; Playwright | Test Case Design | Aspiring QA Automation Engineer | Class of 2027</p>
             <a href="#test-run" class="btn btn-success btn-lg me-2">
                 <i class="fas fa-vial"></i> See My Tests Run
             </a>
@@ -67,7 +67,8 @@
         <div class="container">
             <h2 class="text-center mb-2" style="color:#fff">See My Tests Run</h2>
             <p class="text-center mb-4" style="color:#adb5bd">
-                A real execution of my EMERGEX test suite &mdash; 118 automated tests across six layers.
+                Test run TR-001 of my EMERGEX suite &mdash; 149 pytest functions, 230 executions,
+                across seven layers.
             </p>
 
             <div class="row justify-content-center">
@@ -77,7 +78,7 @@
                             <span class="tdot tdot-red"></span>
                             <span class="tdot tdot-amber"></span>
                             <span class="tdot tdot-green"></span>
-                            <span class="terminal-title">novithan@beyondthebugs — EMERGEX.Tests</span>
+                            <span class="terminal-title">novithan@beyondthebugs — emergex-group-55/tests — pytest</span>
                         </div>
                         <pre class="terminal-body" id="terminalBody"></pre>
                     </div>
@@ -102,46 +103,30 @@
         <div class="container">
             <h2 class="text-center mb-2" style="color:#fff">Defects I Found</h2>
             <p class="text-center mb-4" style="color:#adb5bd">
-                Four defects in the EMERGEX platform. None was visible through normal manual use &mdash;
-                every one was caught by an automated test.
+                Seven defects in the EMERGEX accommodation interface. Not one was reachable
+                through normal manual use &mdash; every one was caught by an automated test,
+                and every one has since been corrected and verified.
             </p>
 
-            <div class="row g-4">
-
-                <div class="col-md-6">
-                    <div class="defect-card defect-critical h-100">
-                        <div class="defect-hd">
-                            <span class="defect-id">DEF-011</span>
-                            <span class="defect-sev sev-critical">Critical</span>
-                        </div>
-                        <h4>Identity documents publicly readable</h4>
-                        <p>
-                            Uploaded NSFAS documents were written to a folder served directly by Apache,
-                            with no authorisation check. I uploaded a document, cleared every cookie,
-                            requested the file and got HTTP 200 with the contents.
-                        </p>
-                        <div class="defect-meta">
-                            <span><i class="fas fa-search"></i> Security test, access control</span>
-                            <span><i class="fas fa-wrench"></i> Store outside the web root; stream via an authenticated handler</span>
-                        </div>
-                    </div>
-                </div>
+            <div class="row g-4 justify-content-center">
 
                 <div class="col-md-6">
                     <div class="defect-card defect-high h-100">
                         <div class="defect-hd">
-                            <span class="defect-id">DEF-010</span>
+                            <span class="defect-id">DEF-02</span>
                             <span class="defect-sev sev-high">High</span>
                         </div>
-                        <h4>No room availability check on booking</h4>
+                        <h4>A viewing request with no rooms was accepted</h4>
                         <p>
-                            <code>available_rooms</code> was displayed everywhere but never decremented,
-                            and the booking code never read it. A property advertising zero rooms
-                            accepted unlimited bookings.
+                            Business rule BR-06 says a request must name at least one room. Nothing
+                            enforced it. The run produced reference <code>RF-261101-3591</code> &mdash;
+                            a real stored request with <strong>zero rows</strong> in
+                            <code>viewing_request_rooms</code>. The provider gets a name and a phone
+                            number with no idea what the student wants to see.
                         </p>
                         <div class="defect-meta">
-                            <span><i class="fas fa-search"></i> Regression test, data integrity</span>
-                            <span><i class="fas fa-wrench"></i> Availability check inside the booking transaction</span>
+                            <span><i class="fas fa-search"></i> Functional test, business rules</span>
+                            <span><i class="fas fa-wrench"></i> Refuse the submission; error beside that section</span>
                         </div>
                     </div>
                 </div>
@@ -149,18 +134,95 @@
                 <div class="col-md-6">
                     <div class="defect-card defect-medium h-100">
                         <div class="defect-hd">
-                            <span class="defect-id">DEF-012</span>
+                            <span class="defect-id">DEF-03</span>
                             <span class="defect-sev sev-medium">Medium</span>
                         </div>
-                        <h4>CSRF block reported as a server crash</h4>
+                        <h4>Rooms from another campus were accepted</h4>
                         <p>
-                            The CSRF guard returned HTTP 419 &mdash; a framework convention, not a
-                            registered status code. Apache did not recognise it and substituted 500,
-                            so every blocked submission looked like a server error.
+                            Rooms were checked for existence but never for location. The run submitted
+                            a request for <code>cape-town</code> naming a room in Bryanston &mdash;
+                            roughly 1 400 km away &mdash; and it was stored. The request routes to a
+                            campus that cannot act on it.
                         </p>
                         <div class="defect-meta">
-                            <span><i class="fas fa-search"></i> Functional test, CSRF</span>
-                            <span><i class="fas fa-wrench"></i> Return 403 Forbidden</span>
+                            <span><i class="fas fa-search"></i> Functional test, business rules</span>
+                            <span><i class="fas fa-wrench"></i> Resolve each room and compare its campus</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="defect-card defect-medium h-100">
+                        <div class="defect-hd">
+                            <span class="defect-id">DEF-01</span>
+                            <span class="defect-sev sev-medium">Medium</span>
+                        </div>
+                        <h4>Long names were silently truncated</h4>
+                        <p>
+                            A 200-character name was accepted and stored as 160 to fit the column.
+                            Nobody was told anything had been lost, so the provider calls using a name
+                            that is not the student's.
+                        </p>
+                        <div class="defect-meta">
+                            <span><i class="fas fa-search"></i> Functional test, input validation</span>
+                            <span><i class="fas fa-wrench"></i> Length check before the transaction opens</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="defect-card defect-medium h-100">
+                        <div class="defect-hd">
+                            <span class="defect-id">DEF-04</span>
+                            <span class="defect-sev sev-medium">Medium</span>
+                        </div>
+                        <h4>The move-in month was never validated</h4>
+                        <p>
+                            Posting <code>move_in=1999-01</code> straight to the server stored it
+                            unchanged. Unreachable by clicking, because the field is a dropdown
+                            &mdash; which is exactly why it was found by posting rather than clicking.
+                        </p>
+                        <div class="defect-meta">
+                            <span><i class="fas fa-search"></i> Security test, server-side validation</span>
+                            <span><i class="fas fa-wrench"></i> Validate against the twelve months offered</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="defect-card defect-medium h-100">
+                        <div class="defect-hd">
+                            <span class="defect-id">DEF-05</span>
+                            <span class="defect-sev sev-medium">Medium</span>
+                        </div>
+                        <h4>An unknown campus reached the database</h4>
+                        <p>
+                            Validation passed it through; the foreign key refused it; the student saw
+                            "We could not save your request just now" with no indication of which field
+                            was wrong. The data was protected. The student was not helped.
+                        </p>
+                        <div class="defect-meta">
+                            <span><i class="fas fa-search"></i> Security test, server-side validation</span>
+                            <span><i class="fas fa-wrench"></i> Validate against the campus table first</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="defect-card defect-medium h-100">
+                        <div class="defect-hd">
+                            <span class="defect-id">DEF-07</span>
+                            <span class="defect-sev sev-medium">Medium</span>
+                        </div>
+                        <h4>The form promised an email nothing sends</h4>
+                        <p>
+                            The guardian field read "They receive the same confirmation and lease
+                            summary you do." This release sends no email at all. The same claim sat in
+                            the For Parents section of the landing page.
+                        </p>
+                        <div class="defect-meta">
+                            <span><i class="fas fa-search"></i> UI test, content accuracy</span>
+                            <span><i class="fas fa-wrench"></i> Reword to describe what the system does</span>
                         </div>
                     </div>
                 </div>
@@ -168,18 +230,18 @@
                 <div class="col-md-6">
                     <div class="defect-card defect-low h-100">
                         <div class="defect-hd">
-                            <span class="defect-id">DEF-013</span>
+                            <span class="defect-id">DEF-06</span>
                             <span class="defect-sev sev-low">Low</span>
                         </div>
-                        <h4>Hidden field stayed visible</h4>
+                        <h4>The status column accepted any value</h4>
                         <p>
-                            The script correctly set the <code>hidden</code> attribute, but a
-                            <code>label { display: block }</code> rule in the stylesheet overrode the
-                            browser default. The field was marked hidden and still on screen.
+                            <code>status</code> was <code>VARCHAR(20)</code> and took
+                            <code>not-a-real-status</code> without complaint. It is meant to hold one
+                            of four values. Low severity only because nothing reads it yet.
                         </p>
                         <div class="defect-meta">
-                            <span><i class="fas fa-search"></i> Regression test, rendering</span>
-                            <span><i class="fas fa-wrench"></i> Add an explicit [hidden] rule</span>
+                            <span><i class="fas fa-search"></i> Integration test, schema constraints</span>
+                            <span><i class="fas fa-wrench"></i> ENUM('new','contacted','viewed','closed')</span>
                         </div>
                     </div>
                 </div>
@@ -189,11 +251,11 @@
             <div class="row mt-4">
                 <div class="col-12 text-center">
                     <div class="stat-strip">
-                        <div><strong>36</strong><span>Test cases</span></div>
-                        <div><strong>118</strong><span>Automated tests</span></div>
-                        <div><strong>6</strong><span>Test layers</span></div>
-                        <div><strong>4</strong><span>Defects found</span></div>
-                        <div><strong>46s</strong><span>Full suite runtime</span></div>
+                        <div><strong>60</strong><span>Test cases</span></div>
+                        <div><strong>230</strong><span>Automated executions</span></div>
+                        <div><strong>7</strong><span>Test layers</span></div>
+                        <div><strong>7</strong><span>Defects found</span></div>
+                        <div><strong>7/7</strong><span>Corrected &amp; verified</span></div>
                     </div>
                 </div>
             </div>
@@ -207,7 +269,7 @@
             <div class="col-md-6 mb-4">
                 <h2 style="color: white !important;">About Me</h2>
                 <p class="lead" style="color: white !important;">Hi, I'm Novithan</p>
-                <p style="color: white !important;">I'm in my final year of a BSc in IT, focused on test automation. I write test cases from requirements and turn them into executable suites using Playwright and NUnit in C&#35;, across UI, functional, integration, end-to-end, regression and security layers. My most recent suite &mdash; 118 automated tests against a student accommodation platform &mdash; uncovered four defects, including a critical access-control flaw that would not have surfaced through ordinary use.</p>
+                <p style="color: white !important;">I'm in my final year of a BSc in IT, focused on test automation. I write test cases from requirements and turn them into executable suites using Python, pytest and Playwright, across UI, functional, logic, integration, end-to-end, regression and security layers. My most recent suite &mdash; 149 test functions producing 230 executions against a student accommodation platform &mdash; uncovered seven defects, none of them reachable through ordinary use. All seven were corrected, and a second run proved it: 224 passed, none failed.</p>
                 <a href="bio.html" class="btn btn-success">
                     <i class="fas fa-user"></i> Learn More
                 </a>
@@ -224,8 +286,9 @@
         <div class="container">
             <h2 class="text-center mb-5">My Learning Journey</h2>
             <p class="text-center text-muted mb-5" style="margin-top:-1.5rem">
-                Six test layers, each answering a different question &mdash; so a defect that
-                escapes one is caught by the next.
+                Seven test layers, each answering a different question &mdash; so a defect that
+                escapes one is caught by the next. The layer is recorded as a pytest marker, so
+                <code>pytest -m security</code> runs that layer wherever it lives.
             </p>
 
             <div class="row">
@@ -236,11 +299,12 @@
                             <h4>UI Testing</h4>
                             <p class="layer-q">Does it render correctly?</p>
                             <p>
-                                Badges, responsive layout, accessible structure. Driven with
-                                Playwright using the Page Object Model, so a markup change is
-                                a one-line fix rather than a rewrite.
+                                Badges, responsive layout, accessible structure, checked at
+                                seven viewport widths. Driven with Playwright using the Page
+                                Object Model, so every selector lives in one file and a markup
+                                change is a one-line fix rather than a rewrite.
                             </p>
-                            <span class="layer-count">25 tests</span>
+                            <span class="layer-count">40 tests</span>
                         </div>
                     </div>
                 </div>
@@ -252,12 +316,12 @@
                             <h4>Functional Testing</h4>
                             <p class="layer-q">Does it follow the rules?</p>
                             <p>
-                                Authentication, validation, filtering and access control.
-                                Roughly half of these assert that something is correctly
+                                Search, filtering, the shortlist and form validation. Roughly
+                                half of these assert that something is correctly
                                 <em>refused</em> &mdash; a suite that only proves the happy
                                 path proves very little.
                             </p>
-                            <span class="layer-count">39 tests</span>
+                            <span class="layer-count">73 tests</span>
                         </div>
                     </div>
                 </div>
@@ -269,17 +333,17 @@
                             <h4>Integration Testing</h4>
                             <p class="layer-q">Does it reach the database?</p>
                             <p>
-                                Assertions run against MySQL rows, not screen text. A page can
-                                say &ldquo;saved&rdquo; whether or not anything was written &mdash;
-                                only the row proves it.
+                                Assertions run against MySQL rows through PyMySQL, not screen
+                                text. A page can say &ldquo;saved&rdquo; whether or not anything
+                                was written &mdash; only the row proves it.
                             </p>
-                            <span class="layer-count">9 tests</span>
+                            <span class="layer-count">37 tests</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="row">
+            <div class="row justify-content-center">
                 <div class="col-md-4 mb-4">
                     <div class="card h-100 text-center">
                         <div class="card-body">
@@ -287,9 +351,10 @@
                             <h4>End-to-End Testing</h4>
                             <p class="layer-q">Do the journeys work?</p>
                             <p>
-                                Complete flows across multiple roles &mdash; a student books,
-                                a landlord approves, a deposit moves through escrow. Individual
-                                features can each work while the path between them breaks.
+                                The whole path a student takes: filter the search, shortlist two
+                                rooms, carry them into the form, submit, then read the stored row
+                                back. Individual features can each work while the path between
+                                them breaks.
                             </p>
                             <span class="layer-count">5 tests</span>
                         </div>
@@ -304,10 +369,11 @@
                             <p class="layer-q">Has anything broken?</p>
                             <p>
                                 A smoke pack plus one guard per fixed defect, so a later change
-                                cannot silently undo an earlier fix. The whole suite runs in 46
-                                seconds, which is what makes it worth running often.
+                                cannot silently undo an earlier fix. This layer earned itself
+                                during the fixes: enforcing one rule turned thirty tests red
+                                within minutes, and all thirty had one cause.
                             </p>
-                            <span class="layer-count">24 tests</span>
+                            <span class="layer-count">8 tests</span>
                         </div>
                     </div>
                 </div>
@@ -319,11 +385,30 @@
                             <h4>Security Testing</h4>
                             <p class="layer-q">Do the controls hold?</p>
                             <p>
-                                Injection, access control, CSRF, session handling and file
-                                uploads, mapped to the OWASP Top 10. This layer found the most
-                                serious defect in the project.
+                                Injection, CSRF, tampering and error disclosure, mapped to the
+                                OWASP Top 10. These post directly with <code>requests</code>
+                                rather than clicking: client-side validation is a usability
+                                feature, never a security control, because the attacker chooses
+                                the client.
                             </p>
-                            <span class="layer-count">16 tests</span>
+                            <span class="layer-count">19 tests</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <i class="fas fa-calculator fa-3x text-success mb-3"></i>
+                            <h4>Logic Testing</h4>
+                            <p class="layer-q">Is the arithmetic right?</p>
+                            <p>
+                                The cost estimator across three payment plans, including the rule
+                                that carries the most meaning: the discount applies to rent only,
+                                never to the deposit or the admin fee. Proven by reading the
+                                deposit under all three plans and requiring them to match.
+                            </p>
+                            <span class="layer-count">13 tests</span>
                         </div>
                     </div>
                 </div>

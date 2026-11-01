@@ -1374,23 +1374,49 @@ function goTo(page, navEl){
   renders[page]?.();
 }
 
+/* Returns the most recently added run that has any result recorded, or null.
+   Pass, fail and blocked are properties of a RUN, not of a case: a case holds
+   one specification and one lifecycle status, while each run holds its own
+   result for it. So the dashboard's outcome figures have to be read from a
+   run. Reading them from case.status is what made Failed and Blocked sit at
+   zero while a run clearly held failures. */
+function latestRunWithResults(){
+  for(let i=store.runs.length-1;i>=0;i--){
+    const r=store.runs[i];
+    if(r && r.results && Object.values(r.results).some(v=>v&&v.result&&v.result!=='pending')){
+      return r;
+    }
+  }
+  return null;
+}
+
 // ── DASHBOARD ──
 function renderDash(){
   const total=store.cases.length;
   const approved=store.cases.filter(c=>c.status==='approved').length;
-  const failed=store.cases.filter(c=>c.status==='failed').length;
   const drafts=store.cases.filter(c=>c.status==='draft').length;
   const critical=store.cases.filter(c=>c.priority==='critical').length;
-  const blocked=store.cases.filter(c=>c.status==='blocked').length;
+
+  // Outcome figures come from the latest run that has results.
+  const run=latestRunWithResults();
+  const vals=run?Object.values(run.results):[];
+  const passed =vals.filter(v=>v.result==='passed').length;
+  const failed =vals.filter(v=>v.result==='failed').length;
+  const blocked=vals.filter(v=>v.result==='blocked').length;
+  const runLabel=run?`Failed · ${esc(run.name)}`:'Failed';
+  const blkLabel=run?`Blocked · ${esc(run.name)}`:'Blocked';
+  const pasLabel=run?`Passed · ${esc(run.name)}`:'Passed';
+
   document.getElementById('statsGrid').innerHTML=[
     ['Total Cases',total,'fa-flask','#dcfce7','#15803d'],
     ['Approved',approved,'fa-check-circle','#dcfce7','#15803d'],
     // Failures are the most important number on a QA dashboard — they
     // should never be something you have to filter for to discover.
-    ['Failed',failed,'fa-times-circle','#fee2e2','#dc2626'],
+    [runLabel,failed,'fa-times-circle','#fee2e2','#dc2626'],
+    [pasLabel,passed,'fa-circle-check','#dcfce7','#15803d'],
+    [blkLabel,blocked,'fa-ban','#fef9c3','#a16207'],
     ['Drafts',drafts,'fa-clock','#fef9c3','#a16207'],
     ['Critical',critical,'fa-exclamation-triangle','#fee2e2','#dc2626'],
-    ['Blocked',blocked,'fa-ban','#fef9c3','#a16207'],
   ].map(([l,v,ic,bg,col])=>`
     <div class="stat-card">
       <div><div class="stat-label">${l}</div><div class="stat-val">${v}</div></div>
@@ -2096,8 +2122,8 @@ function renderDefects(){
 }
 
 // Renders the linked case as its ID, or a dash when a defect stands alone.
-// Some defects legitimately have no case — DEF-010 in the EMERGEX project is
-// one, because the control it describes does not exist to be specified.
+// Some defects legitimately have no case: one raised during exploratory work,
+// before a case exists to specify the behaviour it describes.
 function caseLabel(caseId){
   if(!caseId) return `<span style="color:var(--text-light)">&mdash;</span>`;
   const c=store.cases.find(x=>x.id===caseId);
