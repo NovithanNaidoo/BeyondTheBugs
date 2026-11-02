@@ -667,8 +667,14 @@ h1, h2, h3, h4, h5, h6, p, li, td, a {
 }
 
 /* No hover on a touch screen, so the photo would be stuck in greyscale.
-   Show it in full colour there instead. */
-@media (hover: none) {
+   Show it in full colour there instead.
+
+   Both conditions are required. "(hover: none)" on its own also matches a
+   laptop that happens to have a touchscreen, because the browser reports
+   the PRIMARY pointer as touch even when a mouse is attached - which left
+   the photo permanently in colour on a machine that can hover perfectly
+   well. "(pointer: coarse)" narrows this to devices driven by a finger. */
+@media (hover: none) and (pointer: coarse) {
     .profile-img { filter: none; }
 }
 

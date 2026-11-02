@@ -33,7 +33,14 @@
 (function fluidTrail() {
     'use strict';
 
-    if (window.matchMedia('(hover: none)').matches) return;
+    /* Skip on genuine touch devices, where there is no cursor to trail.
+       Both conditions are required. "(hover: none)" alone also matches a
+       laptop with a touchscreen, because the browser reports the PRIMARY
+       pointer as touch even though a mouse is attached - which silently
+       disabled this effect on exactly the machines that can run it best.
+       Adding "(pointer: coarse)" narrows it to devices whose primary
+       pointer really is a finger. */
+    if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     // ── Tuning ────────────────────────────────────────────────────────
