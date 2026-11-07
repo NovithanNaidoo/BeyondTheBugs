@@ -11,12 +11,47 @@
     <link rel="icon" type="image/png" href="Logo/bug.png">
     <style>
         .project-card {
-            transition: transform 0.2s;
             margin-bottom: 15px;
+            border: 1px solid transparent;
+            transition: transform .25s ease,
+                        border-color .3s ease,
+                        box-shadow .3s ease;
         }
-        .project-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+
+        /* focus-within as well as hover, so the card lights up when someone
+           tabs to the Demo or GitHub button inside it. A hover-only effect
+           leaves keyboard users with no idea where they are on the page. */
+        .project-card:hover,
+        .project-card:focus-within {
+            transform: translateY(-6px);
+            border-color: rgba(57, 255, 20, .9);
+            animation: card-glow 1.6s ease-in-out infinite;
+        }
+
+        @keyframes card-glow {
+            0%, 100% {
+                box-shadow: 0 0 0 1px rgba(57, 255, 20, .45),
+                            0 0 12px rgba(57, 255, 20, .30),
+                            0 10px 24px rgba(0, 0, 0, .22);
+            }
+            50% {
+                box-shadow: 0 0 0 1px rgba(57, 255, 20, .95),
+                            0 0 28px rgba(57, 255, 20, .70),
+                            0 10px 24px rgba(0, 0, 0, .22);
+            }
+        }
+
+        /* A pulsing outline is exactly the kind of motion that triggers
+           discomfort, so honour the system setting: the green edge stays,
+           the pulsing and the lift go. */
+        @media (prefers-reduced-motion: reduce) {
+            .project-card:hover,
+            .project-card:focus-within {
+                transform: none;
+                animation: none;
+                box-shadow: 0 0 0 1px rgba(57, 255, 20, .9),
+                            0 0 16px rgba(57, 255, 20, .45);
+            }
         }
         .project-image {
             width: 100%;

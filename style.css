@@ -467,22 +467,83 @@ footer .d-block {
    DEFECT CARDS
    ═══════════════════════════════════════════════════════════════════ */
 .defect-card {
+    /* Severity colour in one place. The left border, the accent bar and
+       the hover glow all read from it, so a severity is restyled by
+       changing a single value rather than three rules. */
+    --sev: #6c757d;
+
+    position: relative;
+    overflow: hidden;              /* keeps the sweep inside the rounded corners */
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-left-width: 4px;
+    border-left-color: var(--sev);
     border-radius: 10px;
     padding: 20px;
     backdrop-filter: blur(6px);
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    transition: transform .3s ease,
+                box-shadow .3s ease,
+                border-color .3s ease;
 }
-.defect-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+
+/* Accent bar along the top edge, drawn from the left on hover. */
+.defect-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--sev), #7fff6a);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform .45s ease;
 }
-.defect-critical { border-left-color: #dc3545; }
-.defect-high     { border-left-color: #fd7e14; }
-.defect-medium   { border-left-color: #ffc107; }
-.defect-low      { border-left-color: #6c757d; }
+
+/* A single pass of light across the card, the way a glossy panel catches
+   a reflection. It only animates on the way in - sliding it back out
+   would read as a second, unexplained flash. */
+.defect-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(115deg,
+                transparent 38%,
+                rgba(255, 255, 255, .07) 50%,
+                transparent 62%);
+    transform: translateX(-130%);
+    transition: transform .8s ease;
+}
+
+.defect-card:hover,
+.defect-card:focus-within {
+    transform: translateY(-6px);
+    border-top-color: rgba(255, 255, 255, .2);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, .42),
+                0 0 24px -6px var(--sev);
+}
+.defect-card:hover::before,
+.defect-card:focus-within::before { transform: scaleX(1); }
+.defect-card:hover::after,
+.defect-card:focus-within::after  { transform: translateX(130%); }
+
+.defect-critical { --sev: #dc3545; }
+.defect-high     { --sev: #fd7e14; }
+.defect-medium   { --sev: #ffc107; }
+.defect-low      { --sev: #6c757d; }
+
+/* The lift and the sweep are decoration; the colour change alone still
+   says "this one is under the cursor". */
+@media (prefers-reduced-motion: reduce) {
+    .defect-card,
+    .defect-card::before,
+    .defect-card::after { transition: none; }
+    .defect-card:hover,
+    .defect-card:focus-within { transform: none; }
+    .defect-card:hover::after,
+    .defect-card:focus-within::after { transform: translateX(-130%); }
+}
 
 .defect-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .defect-id {
