@@ -22,7 +22,12 @@
     --text: #111827;
     --text-mid: #6b7280;
     --text-light: #9ca3af;
-    --bg: #f8fafb;
+    /* Inputs, table headers and ghost-button hovers. Warmed very slightly
+       towards green so the small chrome sits in the same palette as the
+       backdrop - the old #f8fafb was cool grey-blue and read as foreign
+       against it. Still clearly distinct from --white so fields remain
+       visible inside white cards. */
+    --bg: #f3f8f4;
     --white: #ffffff;
     --border: #e5e7eb;
     --red: #ef4444;
@@ -36,7 +41,39 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; font-size: 14px; overflow: hidden; }
+
+  /* ── NATURE BACKDROP ──
+     Four layers, all CSS and no image to download:
+
+       1. a tiled botanical line pattern, as an inline SVG data URI
+       2-4. soft radial blooms of green, like light coming through leaves
+       5. a pale green-to-white wash underneath everything
+
+     Deliberately faint. The tool is a working surface - cards, tables and
+     small text sit on top of this, and a background that competes with
+     them costs legibility for decoration. The blooms do the colouring;
+     the leaf pattern only shows as texture when you look for it.
+
+     It lives on body, which never scrolls here (.content does), so the
+     backdrop stays put while the page moves over it. */
+  body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+    font-size: 14px;
+    overflow: hidden;
+
+    background-color: #f4fbf6;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cg fill='none' stroke='%2316a34a' stroke-opacity='0.085' stroke-width='1.35' stroke-linecap='round'%3E%3Cpath d='M22 118c0-30 21-53 49-57-6 30-23 49-49 57z'/%3E%3Cpath d='M22 118c21-15 36-32 49-57'/%3E%3Cpath d='M128 34c0 27-19 48-44 52 6-27 21-44 44-52z'/%3E%3Cpath d='M128 34c-19 15-34 30-44 52'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(60% 45% at 8% 4%, rgba(34, 197, 94, 0.16), transparent 70%),
+      radial-gradient(55% 50% at 95% 22%, rgba(22, 163, 74, 0.13), transparent 72%),
+      radial-gradient(70% 55% at 55% 105%, rgba(74, 222, 128, 0.15), transparent 70%),
+      linear-gradient(170deg, #f7fdf9 0%, #eef8f1 55%, #e7f5ec 100%);
+    background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+    background-attachment: fixed;
+  }
 
   /* ── MATRIX CANVAS ── */
   #matrix {
@@ -174,6 +211,41 @@
   /* auto-fit rather than a fixed count, so adding or removing a stat card
      does not require touching the CSS */
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 24px; }
+
+  /* ── COLLAPSIBLE SIDEBAR ──
+     The panel slides out of view and the content reclaims its 250px, so
+     the dashboard runs the full width of the window.
+
+     Scoped to desktop. Below 900px the sidebar is already an off-canvas
+     drawer driven by toggleNav(), and a second mechanism moving the same
+     element would fight with it. */
+  .collapse-btn {
+    display: none; background: none; border: 1px solid var(--border);
+    border-radius: 8px; width: 34px; height: 34px; cursor: pointer;
+    color: var(--text-mid); font-size: 13px; flex-shrink: 0;
+    margin-right: 10px; align-items: center; justify-content: center;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .collapse-btn:hover {
+    color: var(--green); border-color: var(--green);
+    background: rgba(34,197,94,0.06);
+  }
+
+  @media (min-width: 901px) {
+    .collapse-btn { display: inline-flex; }
+
+    /* Animating transform rather than width or margin keeps the fold on
+       the compositor instead of forcing a layout pass on every frame. */
+    .sidebar { transition: transform .22s ease; }
+    .main    { transition: margin-left .22s ease; }
+
+    body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
+    body.sidebar-collapsed .main    { margin-left: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sidebar, .main { transition: none; }
+  }
   .stat-card {
     background: var(--white); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 18px 16px;
@@ -588,9 +660,6 @@
     <div class="nav-divider"></div>
 
     <div class="nav-section">
-      <div class="nav-item" onclick="goTo('guide',this)">
-        <i class="fas fa-question-circle"></i> Guide
-      </div>
       <div class="nav-item" onclick="openTrash()">
         <i class="fas fa-trash"></i> Trash
       </div>
@@ -601,7 +670,11 @@
   </nav>
 
   <div class="sidebar-bottom">
-    <a href="https://beyondthebugs.netlify.app" target="_blank" class="bug-back">
+    <!-- Relative, and without target="_blank". The absolute URL sent you
+         to the live site even when you were running a local copy, and the
+         new tab meant going back and forth built up a pile of tabs for
+         what is really one site. -->
+    <a href="../index.html" class="bug-back">
       Back to Beyond the Bugs
     </a>
   </div>
@@ -614,6 +687,11 @@
     <button class="menu-btn" id="menuBtn" onclick="toggleNav()"
             aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
       <i class="fas fa-bars"></i>
+    </button>
+    <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()"
+            aria-pressed="false" aria-controls="sidebar"
+            aria-label="Hide navigation" title="Hide navigation  [">
+      <i class="fas fa-angles-left"></i>
     </button>
     <div class="page-title" id="pageTitle">
       <i class="fas fa-th-large" style="color:var(--green);font-size:14px"></i> Dashboard
@@ -850,45 +928,6 @@
         </div>
         <div class="kanban-wrap" id="kanbanWrap">
           <div class="kanban" id="kanban"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- GUIDE -->
-    <div class="page" id="page-guide">
-      <div class="section">
-        <div class="section-hd"><div class="section-title"><i class="fas fa-question-circle" style="color:var(--green)"></i> Guide</div></div>
-        <div style="padding:28px;max-width:600px">
-          <h3 style="margin-bottom:12px;font-size:15px">Getting Started</h3>
-          <p style="color:var(--text-mid);font-size:13px;line-height:1.8;margin-bottom:20px">BeyondTheBugs is your manual testing hub. Here is how to use it:</p>
-          <div style="display:flex;flex-direction:column;gap:14px">
-            
-            <div style="display:flex;gap:12px;align-items:flex-start">
-              <div style="width:24px;height:24px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0">1</div>
-              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Create a <strong>Project</strong> to organise your testing work</p>
-            </div>
-
-            <div style="display:flex;gap:12px;align-items:flex-start">
-              <div style="width:24px;height:24px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0">2</div>
-              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Add <strong>Test Cases</strong> with preconditions, steps and an expected result &mdash; or duplicate an existing one as a starting point</p>
-            </div>
-
-            <div style="display:flex;gap:12px;align-items:flex-start">
-              <div style="width:24px;height:24px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0">3</div>
-              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Log <strong>Defects</strong> when you find bugs during testing</p>
-            </div>
-
-            <div style="display:flex;gap:12px;align-items:flex-start">
-              <div style="width:24px;height:24px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0">4</div>
-              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Use the <strong>Boards</strong> to track test cases through Draft → Ready → In Review → Approved</p>
-            </div>
-
-            <div style="display:flex;gap:12px;align-items:flex-start">
-              <div style="width:24px;height:24px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0">5</div>
-              <p style="font-size:13px;color:var(--text-mid);line-height:1.6;padding-top:2px">Create a <strong>Test Run</strong> to execute cases one at a time and record pass, fail or blocked against a specific build</p>
-            </div>
-
-          </div>
         </div>
       </div>
     </div>
@@ -1340,7 +1379,6 @@ const PAGE_META={
   testruns:{icon:'fa-play',label:'Test Runs'},
   defects:{icon:'fa-bug',label:'Defects'},
   boards:{icon:'fa-columns',label:'Boards'},
-  guide:{icon:'fa-question-circle',label:'Guide'},
   trello:{icon:'fa-sync',label:'Trello Sync'},
 };
 
@@ -1390,6 +1428,54 @@ function latestRunWithResults(){
   return null;
 }
 
+/* ── SIDEBAR COLLAPSE ────────────────────────────────────────────────
+   Folds the navigation panel away so the dashboard runs the full width
+   of the window. Desktop only: below 900px the sidebar is already an
+   off-canvas drawer driven by toggleNav(), so collapsing it there would
+   be two mechanisms fighting over the same element.
+
+   The choice is remembered - a preference that resets on every reload is
+   not really a preference. localStorage throws outright in a private
+   window or with site data blocked, so both the read and the write are
+   guarded; failing to remember a panel state must never stop the tool
+   from opening. */
+function sidebarCollapsed(){
+  try { return localStorage.getItem('byb-sidebar-collapsed') === '1'; }
+  catch (e) { return false; }
+}
+
+function applySidebarState(collapsed){
+  const btn = document.getElementById('collapseBtn');
+  document.body.classList.toggle('sidebar-collapsed', collapsed);
+  if (!btn) return;
+  btn.setAttribute('aria-pressed', String(collapsed));
+  btn.setAttribute('aria-label', collapsed ? 'Show navigation' : 'Hide navigation');
+  btn.title = collapsed ? 'Show navigation  [' : 'Hide navigation  [';
+  btn.innerHTML = collapsed
+    ? '<i class="fas fa-angles-right"></i>'
+    : '<i class="fas fa-angles-left"></i>';
+}
+
+function toggleSidebar(){
+  const collapsed = !sidebarCollapsed();
+  try { localStorage.setItem('byb-sidebar-collapsed', collapsed ? '1' : '0'); } catch (e) {}
+  applySidebarState(collapsed);
+}
+
+// Restore the remembered state as soon as the markup exists.
+document.addEventListener('DOMContentLoaded', () => applySidebarState(sidebarCollapsed()));
+
+// "[" toggles it, the way an editor folds a panel - but never while
+// someone is typing into a field.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== '[') return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target;
+  if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+  if (window.matchMedia('(max-width: 900px)').matches) return;
+  toggleSidebar();
+});
+
 // ── DASHBOARD ──
 function renderDash(){
   const total=store.cases.length;
@@ -1401,18 +1487,13 @@ function renderDash(){
   const run=latestRunWithResults();
   const vals=run?Object.values(run.results):[];
   const passed =vals.filter(v=>v.result==='passed').length;
-  const failed =vals.filter(v=>v.result==='failed').length;
   const blocked=vals.filter(v=>v.result==='blocked').length;
-  const runLabel=run?`Failed · ${esc(run.name)}`:'Failed';
   const blkLabel=run?`Blocked · ${esc(run.name)}`:'Blocked';
   const pasLabel=run?`Passed · ${esc(run.name)}`:'Passed';
 
   document.getElementById('statsGrid').innerHTML=[
     ['Total Cases',total,'fa-flask','#dcfce7','#15803d'],
     ['Approved',approved,'fa-check-circle','#dcfce7','#15803d'],
-    // Failures are the most important number on a QA dashboard — they
-    // should never be something you have to filter for to discover.
-    [runLabel,failed,'fa-times-circle','#fee2e2','#dc2626'],
     [pasLabel,passed,'fa-circle-check','#dcfce7','#15803d'],
     [blkLabel,blocked,'fa-ban','#fef9c3','#a16207'],
     ['Drafts',drafts,'fa-clock','#fef9c3','#a16207'],
@@ -1422,6 +1503,7 @@ function renderDash(){
       <div><div class="stat-label">${l}</div><div class="stat-val">${v}</div></div>
       <div class="stat-ico" style="background:${bg}"><i class="fas ${ic}" style="color:${col}"></i></div>
     </div>`).join('');
+
 
   const recent=[...store.cases].reverse().slice(0,4);
   document.getElementById('recentCasesWrap').innerHTML=`<div class="cards-grid">${recent.map(c=>caseCardHTML(c)).join('')}</div>`;

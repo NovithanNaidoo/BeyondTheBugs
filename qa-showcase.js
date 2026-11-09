@@ -2,7 +2,7 @@
    LIVE TEST RUN — BeyondTheBugs
    ───────────────────────────────────────────────────────────────────────
    Replays a real execution of the EMERGEX automated test suite in a fake
-   terminal: 149 pytest functions producing 230 executions across seven
+   terminal: 152 pytest functions producing 230 executions across seven
    layers, with the seven documented defects failing exactly as they do in
    test run TR-001 of 1 November 2026.
 

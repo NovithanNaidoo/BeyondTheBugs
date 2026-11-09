@@ -20,6 +20,12 @@
     // Trailing animation is a common motion-sickness trigger.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+    // The inner pages carry their own terminal backdrop. Running both
+    // would stack two backgrounds behind the same content, and the rain
+    // is meant to be the home page's arrival moment rather than a
+    // constant.
+    if (document.body && document.body.classList.contains('page-terminal')) return;
+
     const CONFIG = {
         FONT_SIZE:  16,
         COLOUR:     '#28a745',                   // site green

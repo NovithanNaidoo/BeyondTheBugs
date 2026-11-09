@@ -1,3 +1,41 @@
+/* ═══════════════════════════════════════════════════════════════════
+   CROSS-PAGE TRANSITIONS
+   ───────────────────────────────────────────────────────────────────
+   This site is several HTML pages rather than one app, which is exactly
+   what the View Transitions API was built for: navigating between them
+   cross-fades instead of flashing white. Browsers without support just
+   navigate as they always did - nothing to detect, nothing to polyfill.
+   ═══════════════════════════════════════════════════════════════════ */
+@view-transition { navigation: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) { animation: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SCROLL REVEALS
+   ───────────────────────────────────────────────────────────────────
+   The .reveal class is added by polish.js, never in the markup. If the
+   script fails or is blocked the page renders complete and visible -
+   content must not depend on JavaScript to exist.
+   ═══════════════════════════════════════════════════════════════════ */
+.reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity .7s cubic-bezier(.22, .61, .36, 1) var(--reveal-delay, 0ms),
+                transform .7s cubic-bezier(.22, .61, .36, 1) var(--reveal-delay, 0ms);
+}
+.reveal.is-revealed {
+    opacity: 1;
+    transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+}
+
 /* === ANIMATED CODE BACKGROUND === */
 #codeBackground {
     position: fixed;
@@ -907,3 +945,130 @@ h1.text-center.mb-5 {
 .card img {
     transition: transform 0.3s ease;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CURSOR SPOTLIGHT
+   ───────────────────────────────────────────────────────────────────
+   polish.js writes the pointer position into --mx/--my on whichever card
+   is under the cursor, and the card paints a soft highlight there.
+
+   These rules live at the end of the file on purpose. Earlier rules set
+   the card's fill with the `background` shorthand, which resets
+   background-image - so declared any earlier, the spotlight would be
+   silently wiped and the effect would simply never appear.
+
+   The 50% default matters: a card lit by keyboard focus glows from its
+   centre rather than from wherever the cursor happened to leave it. */
+.defect-card,
+.project-card,
+.stat-strip,
+.card {
+    --mx: 50%;
+    --my: 50%;
+    background-repeat: no-repeat;
+    transition: background-image .25s ease;
+}
+
+.defect-card {
+    background-image: radial-gradient(
+        260px circle at var(--mx) var(--my),
+        rgba(127, 255, 106, .10),
+        transparent 62%
+    );
+}
+
+.project-card,
+.card {
+    background-image: radial-gradient(
+        220px circle at var(--mx) var(--my),
+        rgba(40, 167, 69, .14),
+        transparent 65%
+    );
+}
+
+.stat-strip {
+    background-image: radial-gradient(
+        320px circle at var(--mx) var(--my),
+        rgba(127, 255, 106, .09),
+        transparent 60%
+    );
+}
+
+/* A finger has no hover position, so the highlight would either sit
+   frozen where it was last tapped or never appear at all. */
+@media (hover: none) and (pointer: coarse) {
+    .defect-card,
+    .project-card,
+    .stat-strip,
+    .card { background-image: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TERMINAL BACKDROP — inner pages (Projects, Bio, CV)
+   ───────────────────────────────────────────────────────────────────
+   Applied via <body class="page-terminal">, which also tells matrix.js
+   to stand down so the two backgrounds never run at once.
+
+   The home page keeps the matrix rain and these three are calm, which
+   is the point: the moving background is an arrival effect. Running it
+   on every page turns a flourish into noise you have to read through.
+
+   Three layers, all CSS: a dark base, a faint green glow from the top,
+   and CRT scanlines. The scanlines are a repeating gradient rather than
+   an image - it scales to any screen and costs nothing to download.
+   ═══════════════════════════════════════════════════════════════════ */
+.page-terminal {
+    background:
+        radial-gradient(120% 70% at 50% 0%,
+            rgba(40, 167, 69, .14) 0%,
+            transparent 60%),
+        linear-gradient(180deg, #05080f 0%, #070c16 55%, #04070d 100%);
+    background-attachment: fixed;
+}
+
+/* Scanlines and vignette sit above the backdrop but below everything
+   else, and never intercept a click. */
+.page-terminal::before,
+.page-terminal::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.page-terminal::before {
+    background: repeating-linear-gradient(
+        180deg,
+        rgba(127, 255, 106, .035) 0px,
+        rgba(127, 255, 106, .035) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    /* A slow, shallow drift. A fast or high-contrast flicker is a genuine
+       seizure risk, so this stays under one cycle every six seconds and
+       barely changes opacity at all. */
+    animation: crt-drift 6s ease-in-out infinite;
+}
+
+.page-terminal::after {
+    background: radial-gradient(
+        130% 100% at 50% 50%,
+        transparent 55%,
+        rgba(0, 0, 0, .55) 100%
+    );
+}
+
+@keyframes crt-drift {
+    0%, 100% { opacity: .55; }
+    50%      { opacity: .85; }
+}
+
+/* These pages carry their own backdrop, so the shared one is not needed
+   and would otherwise sit on top of it. */
+.page-terminal #codeBackground { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .page-terminal::before { animation: none; opacity: .6; }
+}
+
