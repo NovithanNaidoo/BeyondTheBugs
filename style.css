@@ -1004,6 +1004,50 @@ h1.text-center.mb-5 {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   "OPEN TOOL" NAV LINK
+   ───────────────────────────────────────────────────────────────────
+   Neon green with a soft halo, so the one link that leaves the site for
+   the testing tool reads as a distinct destination rather than another
+   page in the same set.
+
+   The selector carries .navbar because Bootstrap's own .navbar-dark
+   .nav-link colour would otherwise win on specificity and the neon
+   would silently never apply.
+   ═══════════════════════════════════════════════════════════════════ */
+.navbar .nav-link.nav-tool {
+    color: #39ff14;
+    text-shadow: 0 0 6px rgba(57, 255, 20, .55),
+                 0 0 18px rgba(57, 255, 20, .28);
+    transition: color .2s ease, text-shadow .2s ease, transform .2s ease;
+}
+
+.navbar .nav-link.nav-tool:hover,
+.navbar .nav-link.nav-tool:focus-visible {
+    color: #b6ff9e;
+    text-shadow: 0 0 8px rgba(57, 255, 20, .9),
+                 0 0 26px rgba(57, 255, 20, .55),
+                 0 0 44px rgba(57, 255, 20, .3);
+}
+
+.navbar .nav-link.nav-tool i {
+    /* The chevrons carry the glow better one notch smaller than the
+       text beside them. */
+    font-size: .92em;
+    margin-right: 2px;
+}
+
+/* A permanent glow is a lot on a small screen where the nav is a stacked
+   drawer and the link sits among the others. Keep the colour, drop the
+   halo. */
+@media (max-width: 991px) {
+    .navbar .nav-link.nav-tool { text-shadow: 0 0 6px rgba(57, 255, 20, .4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .navbar .nav-link.nav-tool { transition: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    TERMINAL BACKDROP — inner pages (Projects, Bio, CV)
    ───────────────────────────────────────────────────────────────────
    Applied via <body class="page-terminal">, which also tells matrix.js
